@@ -1,7 +1,7 @@
 # Site settings
 title: Sky丶Memory
 SEOTitle: Sky丶Memory Blog
-header-img: img/home-bg.jpg
+header-img: img/home-bg.webp
 email: Dream_panamera@163.com
 description: "你还记得吗，你说过要像一个诗人那样活着，不谙权欲，不醉红尘。是曰：携清风以御秋色，上九天同揽明月.而随落木归故里，齐下大荒觅自由"
 keyword: ""
@@ -47,22 +47,23 @@ kramdown:
 
 
 # Disqus settings
-#disqus_username: _your_disqus_short_name_
+#disqus_username: SkyMemory
+#disqus_share: true
 
 # Duoshuo settings
-duoshuo_username: huxblog
+#duoshuo_username: huxblog
 # Share component is depend on Comment so we can NOT use share only.
-duoshuo_share: true                     # set to false if you want to use Comment without Sharing
+#duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
 
 
 
 # Analytics settings
-# Baidu Analytics
-#ba_track_id: 4cc1f2d8f3067386cc5cdb626a202900
+ #Baidu Analytics
+ba_track_id: 202aba3122dc4f92831309a9ca7c0716
 # Google Analytics
-#ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
-#ga_domain: huangxuan.me
+ga_track_id: 'UA-123706805-1'            # Format: UA-xxxxxx-xx
+ga_domain: skymemory.github.io
 
 
 

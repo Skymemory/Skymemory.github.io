@@ -1,9 +1,7 @@
-# HuxBlog Boilerplate
+# SkyMemory Blog
 
-##### This is the boilerplate of [Hux Blog](https://github.com/Huxpro/huxpro.github.io), all documents is over there!
 
-#### [View Boilerplate &rarr;](http://huangxuan.me/huxblog-boilerplate/)
+#### This blog is mainly used to record bits and pieces of my life.
 
-#### [View Live Hux Blog &rarr;](http://huangxuan.me)
 
-## If you like Hux Blog, Please star [huxpro.github.io repo](https://github.com/Huxpro/huxpro.github.io) instead of this! Thank you!
+## Otherwise, blog template use [this](https://github.com/Huxpro/huxpro.github.io), if you like it, fork it and go ahead!

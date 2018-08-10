@@ -5,8 +5,8 @@
 4 verbose run-script [ 'preview' ]
 5 info lifecycle skymemory@1.0.0~preview: skymemory@1.0.0
 6 verbose lifecycle skymemory@1.0.0~preview: unsafe-perm in lifecycle true
-7 verbose lifecycle skymemory@1.0.0~preview: PATH: /usr/share/npm/bin/node-gyp-bin:/home/skymemory/github/huxblog-boilerplate/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/skymemory/.local/bin:/snap/bin:/home/skymemory/go/bin
-8 verbose lifecycle skymemory@1.0.0~preview: CWD: /home/skymemory/github/huxblog-boilerplate
+7 verbose lifecycle skymemory@1.0.0~preview: PATH: /usr/share/npm/bin/node-gyp-bin:/home/skymemory/github/Skymemory.github.io/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/home/skymemory/.local/bin:/snap/bin:/home/skymemory/go/bin
+8 verbose lifecycle skymemory@1.0.0~preview: CWD: /home/skymemory/github/Skymemory.github.io
 9 silly lifecycle skymemory@1.0.0~preview: Args: [ '-c', 'cd _site; python -m SimpleHTTPServer 8020' ]
 10 silly lifecycle skymemory@1.0.0~preview: Returned: code: 1  signal: null
 11 info lifecycle skymemory@1.0.0~preview: Failed to exec preview script
@@ -21,7 +21,7 @@
 12 verbose stack     at maybeClose (internal/child_process.js:925:16)
 12 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:209:5)
 13 verbose pkgid skymemory@1.0.0
-14 verbose cwd /home/skymemory/github/huxblog-boilerplate
+14 verbose cwd /home/skymemory/github/Skymemory.github.io
 15 error Linux 4.15.0-30-generic
 16 error argv "/usr/bin/node" "/usr/bin/npm" "run" "preview"
 17 error node v8.10.0
