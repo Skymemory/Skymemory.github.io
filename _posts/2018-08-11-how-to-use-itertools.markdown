@@ -65,6 +65,7 @@ def repeat(o, times=None):
             yield o
 ```
 
+使用例子：
     repeat函数主要用在一些需要常量序列的地方，比如对一个序列求平方---map(pow, range(5), repeat(2))
     
 ---
@@ -150,7 +151,7 @@ def from_iterable(iterables):
             yield element
 ```
 
-跟chain类似，唯一的区别在于，chain.from_iterable不用预先知道iterables的长度，而chain则需要
+跟chain类似，唯一的区别在于，chain.from_iterable不用事先知道iterables的长度，而chain则需要
 
 ---
 
@@ -176,7 +177,7 @@ def islice(iterable, *args):
 ```
 该函数主要作用有如下两个：
 
-- 从一定程度上避免了常规切片带来的内存复制问题，同时也带来了另外一个问题，切片的时间复杂度增为O(n)，使用时，需要自己权衡一下O((stop - start) / step)与内存复制的开销
+- 从一定程度上避免了常规切片带来的内存复制问题，同时也带来了另外一个问题，切片的时间复杂度增为O(n)，使用时，需要自己权衡一下
 
 - 提供了generator切片，但start、stop参数不支持负数，需注意该限制
 
@@ -229,3 +230,43 @@ def zip_longest(*args, **kwds):
         pass
 ```
 内置函数zip当参数序列长度不等时，选择最短序列的长度做为最终结果的长度，而zip_longest刚好与其相反，选择最长序列长度做为最终结果长度，而不及最长长度的序列，可通过fillvalue指定填充值
+
+---
+
+#### groupby
+
+基本等价实现:
+``` python
+class groupby:
+    # [k for k, g in groupby('AAAABBBCCDAABBB')] --> A B C D A B
+    # [list(g) for k, g in groupby('AAAABBBCCD')] --> AAAA BBB CC D
+    def __init__(self, iterable, key=None):
+        if key is None:
+            key = lambda x: x
+        self.keyfunc = key
+        self.it = iter(iterable)
+        self.tgtkey = self.currkey = self.currvalue = object()
+    def __iter__(self):
+        return self
+    def __next__(self):
+        while self.currkey == self.tgtkey:
+            self.currvalue = next(self.it)    # Exit on StopIteration
+            self.currkey = self.keyfunc(self.currvalue)
+        self.tgtkey = self.currkey
+        return (self.currkey, self._grouper(self.tgtkey))
+    def _grouper(self, tgtkey):
+        while self.currkey == tgtkey:
+            yield self.currvalue
+            try:
+                self.currvalue = next(self.it)
+            except StopIteration:
+                return
+            self.currkey = self.keyfunc(self.currvalue)
+```
+
+通过指定key函数，对可迭代对象进行分组，分组的依据为相邻元素是否相等来决定是否属于同一个组，这与SQL中的Group By处理方式不同，使用时需要额外注意
+
+
+#### 参考资料
+
+- [itertools](https://docs.python.org/3.6/library/itertools.html)
