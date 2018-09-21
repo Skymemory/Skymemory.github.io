@@ -4,7 +4,6 @@ title:      "itertools基本使用"
 date:       2018-08-11 23:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/post-bg-2018-08-11.jpg"
-catalog: true
 tags:
     - Python
     - 标准库
