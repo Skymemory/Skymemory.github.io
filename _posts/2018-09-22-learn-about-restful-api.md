@@ -23,21 +23,22 @@ tags:
 ## 域名
 
 尽量将API部署在专用域名之下
-```
-https://api.example.com
-```
+
+`https://api.example.com`
 
 ## 版本
 
 版本号拼接在URL或者放在header中都可以。例如：
-```
-https://api.example.com/v1/
-```
+
+`https://api.example.com/v1/`
+
 或
+
 ```
-https://api.example.com/
+https://api.example.com
 version=v1
 ```
+
 个人更倾向于使用第一种方式，简单、直观
 
 ## 资源
@@ -173,8 +174,8 @@ HTTP状态码从逻辑上大致分为5类:
 - 500 INTERNAL SERVER ERROR - [*]：服务器发生错误，用户将无法判断发出的请求是否成功。
 
 
-## 参考
+## 参考资料
 
-1. [RESTful API设计指南](http://www.ruanyifeng.com/blog/2014/05/restful_api.html)
-2. [REST API V3](https://developer.github.com/v3/)
-3. [我所认为的RESTful API最佳实践](http://www.scienjus.com/my-restful-api-best-practices/)
+- [RESTful API设计指南](http://www.ruanyifeng.com/blog/2014/05/restful_api.html)
+- [REST API V3](https://developer.github.com/v3/)
+- [我所认为的RESTful API最佳实践](http://www.scienjus.com/my-restful-api-best-practices/)
