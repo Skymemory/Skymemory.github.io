@@ -78,6 +78,15 @@ if __name__ == '__main__':
     print("After test data descriptor, age is {}".format(p.data_age))
     p.data_age = 26
     print("After write attr, instance dict is {}, attr value is {}".format(p.__dict__, p.data_age))
+
+
+# output
+{}
+Before test non-data descriptor, age is 25
+After test non-data descriptor, age is 90
+Before test data descriptor, age is 25
+After test data descriptor, age is 25
+After write attr, instance dict is {'non_data_age': 90, 'data_age': 233}, attr value is 26
 ```
 
 ---
