@@ -4,4 +4,4 @@
 #### This blog is mainly used to record bits and pieces of my life.
 
 
-## Otherwise, blog template use [this](https://github.com/Huxpro/huxpro.github.io), if you like it, fork it and go ahead!
+#### In addition, blog template use [this](https://github.com/Huxpro/huxpro.github.io), if you like it, fork it and go ahead!
