@@ -15,10 +15,10 @@ Celery是一个基于Python开发的简单、灵活且可靠的分布式任务�
 
 重要组件说明:
 
-1. Producer: 任务生产者，通过调用Celery提供的API而产生任务并交给任务队列处理的都是任务生产者
+1. Producer: 任务生产者，调用Celery提供的API产生任务
 2. Broker：消息中间件，接受任务生产者发送的消息
 3. Consumer: 任务消费者，通过从broker中获取消息并消费
-4. Celery Beat: 任务调度器，Beat进程会根据配置文件的内容，周期性地将需要执行的任务发送给broker
+4. Celery Beat: 任务调度器，Beat进程会根据配置文件的内容，将需要执行的任务发送给broker
 5. Result Store: 保存Consumer执行完任务的结果，以供查询
 
 ---
@@ -27,10 +27,7 @@ Celery是一个基于Python开发的简单、灵活且可靠的分布式任务�
 
 Celery目前支持的Broker有四种:*RabbitMQ*、*Redis*、*Amazon SQS*、*Zookeeper*，前三个都可用于生产环境中，*Zookeeper*还处在试验阶段。
 
-Celery官方推荐的是RabbitMQ，Celery的作者Ask Solem Hoel最初在VMware就是为RabbitMQ工作的，Celery最初的设计就是基于RabbitMQ，
-所以使用RabbitMQ会非常稳定，成功案例很多。如果使用Redis，则需要能接受发生突然断电之类的问题造成Redis突然终止后的数据丢失等后果。
-
-为了简单起见，本文例子采用的是Redis
+Celery官方推荐使用RabbitMQ作为Broker，这里为了简单起见，本文例子采用的是Redis，Celery版本为4.2.1
 
 ---
 
@@ -96,13 +93,13 @@ task_create_missing_queues = False
 
 对于celerycfg.py文件中的配置，我们可以通过python -m celerycfg来检查是否语法正确，这里对一些配置选项进行简要说明:
 - broker_url: 格式为transport://userid:password@hostname:port/virtual_host，除transport是必须的，其他部分可选配置
-- result_backend: 支持多种方式，如rpc、database、redis等，具体可参见官方文档[result_backend](http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_expires)
-- task_serializer: 默认为*json*，支持*pickle*、*yaml*、*msgpack*，也可自定义序列化方法
-- accept_content: 默认为*json*，也支持其他类型
+- result_backend: 支持多种方式，如rpc、database、redis等，具体可参见官方文档[result_backend](http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_backend)
+- task_serializer: 默认为*json*，支持*pickle*、*yaml*、*msgpack*，可自定义序列化方法
+- accept_content: 默认为*json*，支持其他类型
 - result_expires: 结果过期时间，由celery.backend_cleanup任务定时清理过期的结果
 - task_create_missing_queues: 建议此选项设置为False，Celery默认会创建没有定义在task_queues中的队列
 
-关于更多配置选项的说明，可参考Celery官方文档[Configuration and defaults](http://docs.celeryproject.org/en/latest/userguide/configuration.html)
+关于更多配置选项的说明，可参考Celery官方文档 [Configuration and defaults](http://docs.celeryproject.org/en/latest/userguide/configuration.html)
 
 启动消费者进程:
 
@@ -139,6 +136,33 @@ Out[7]: '72dbaff2-11ee-4af0-afa0-f1d3200d3a19'
 [2018-11-18 15:41:53,300: DEBUG/MainProcess] Task accepted: tasks.add[72dbaff2-11ee-4af0-afa0-f1d3200d3a19] pid:64289
 [2018-11-18 15:41:53,312: INFO/ForkPoolWorker-12] Task tasks.add[72dbaff2-11ee-4af0-afa0-f1d3200d3a19] succeeded in 0.0114071560092s: 30
 ```
+通常情况下，会通过两种调用方式触发异步任务: ***delay*** 和 ***apply_async***，事实上，delay只是对apply_async简单包装一下，其内部还是调用apply_async，
+从celery.app.tasks.Task类实现中可以看出:
+
+```py
+def delay(self, *args, **kwargs):
+    """Star argument version of :meth:`apply_async`.
+
+    Does not support the extra options enabled by :meth:`apply_async`.
+    """
+    return self.apply_async(args, kwargs)
+```
+apply_async支持不少参数，基本函数签名为:
+```py
+def apply_async(self, args=None, kwargs=None, task_id=None, producer=None,
+                link=None, link_error=None, shadow=None, **options):
+```
+这里列举几个比较常用的参数:
+- countdown: 指定任务多少秒后执行
+- eta: 任务具体被调度的时间，也就是任务执行的时间
+- expires: 任务过期时间
+
+例如，指定任务20S后执行:
+```py
+In [36]: add.apply_async(args=(2, 3), countdown=20)
+Out[36]: <AsyncResult: 1e4e49b2-8074-4ca3-8447-644663c88af9>
+```
+
 另外，有时排查问题时，我们只知道task_id，需要获取之前任务执行的结果怎么办呢？Celery提供了根据task_id来获取任务执行结果的方式:
 ```py
 In [1]: from tasks import add
@@ -212,10 +236,10 @@ task_routes = {
 `celery worker -A tasks -Q feeds -l DEBUG`
 
 上述worker只会执行feeds队列中的任务，通过这种方式，我们可以将一些优先级比较高的任务单独存放在一个队列中，由指定的worker进行消费，
-其他相对不那么重要的任务存放在另外的队列中来避免任务处理延迟、任务堆积等问题
+其他相对不那么重要的任务存放在另外的队列中来避免任务处理延迟、堆积等问题
 
 另外，**强烈建议更改默认队列名**，有些公司测试或pre环境为了图方便，不少服务部署到同一台机器上，在这种情况下，如果别人的broker地址和你的一样，
-会导致任务丢失
+有可能会导致任务丢失
 
 ---
 
@@ -241,7 +265,9 @@ beat_schedule配置项指定tasks.add任务每隔20S执行一次，执行时的
 
 `celery worker -A tasks -l DEBUG -Q default`
 
-从终端中，我们可以看到对应任务的执行情况
+从终端中，可以看到对应任务的执行情况
+
+同样地，Celery也支持Linux cron调度方式，具体参考配置见[celery.schedules](http://docs.celeryproject.org/en/latest/reference/celery.schedules.html#celery.schedules.crontab)
 
 ---
 
@@ -273,7 +299,6 @@ def div(self, x, y):
 
 上面只是简单介绍了Celery使用，还有些更进一步的知识需要了解，比如:
 - 消费、确认机制
-- 框架集成
 - AMQP协议
 
 #### 参考链接
