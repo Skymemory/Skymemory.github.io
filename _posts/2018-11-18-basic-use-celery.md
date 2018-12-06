@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "Celery基本使用"
+title:      "Celery基本篇"
 date:       2018-11-18 12:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-11-18-01-bg.jpg"
