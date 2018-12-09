@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "MongoDB基本篇"
-date:       2018-12-07r 12:30:00 +0800
+date:       2018-12-08 12:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-12-08-01-bg.jpeg"
 tags:
