@@ -19,7 +19,7 @@ MongoDB Docker仓库地址[bitnami/mongodb](https://hub.docker.com/r/bitnami/mon
 | MongoDB | 关系型数据库 |
 | :------: | :------: |
 | db | database |
-| collection | table | 
+| collection | table |
 | document | row |
 
 上述表中的概念并不是严格对等，在MongoDB中不需要事先创建db或collection，插入文档时不存在对应的db或collection会自动创建
@@ -172,12 +172,12 @@ value取值为0、1、true、false、[Projection Operators](https://docs.mongodb
 MongoDB同样地支持单条、批量更新，不过MongoDB需要特定的更新操作符来完成更新，这里罗列比较常用的一些更新操作符:
 
 | Name | Description |
-| :------: | :------: | 
+| :------: | :------: |
 | $currentDate | Sets the value of a field to current date, either as a Date or a Timestamp. |
 | $inc | Increments the value of the field by the specified amount. |
 | $min | Only updates the field if the specified value is less than the existing field value. |
 | $max | Only updates the field if the specified value is greater than the existing field value. |
-| $mul | Multiplies the value of the field by the specified amount. | 
+| $mul | Multiplies the value of the field by the specified amount. |
 | $rename | Renames a field. |
 | $set | Sets the value of a field in a document. |
 | $unset | Removes the specified field from a document. |
@@ -212,7 +212,7 @@ db.inventory.deleteOne( { status: "D" } )
 
 #### 索引
 
-MongoDB索引使用B-树，创建索引基本语法：
+MongoDB索引使用B树，创建索引基本语法：
 
 `db.collection.createIndex(keys, options)`
 
