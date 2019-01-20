@@ -36,7 +36,7 @@ Signal类定义在Django源代码下dispatch/dispatcher.py模块中，对外提�
 
 通常情况下，接收方只关注自己关心的事件，这在接收方注册到信号实例上可明确指出，稍微偷窥一下这部分实现的源代码:
 
-```:m:
+```python
 def connect(self, receiver, sender=None, weak=True, dispatch_uid=None):
     from django.conf import settings
 
