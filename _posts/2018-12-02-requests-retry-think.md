@@ -6,7 +6,7 @@ author:     "Sky丶Memory"
 header-img: "img/2018-12-02-01-bg.jpeg"
 tags:
     - requests
-    - retry
+    - Python
 ---
 
 #### 背景
@@ -19,19 +19,17 @@ tags:
 
 requests自身并没有实现网络层，其网络层的依赖库为urllib3，所以requests完全可以看成是构建于urllib3之上的抽象程度更高的API。
 
-清楚了这一点，就很容易从urllib3
-入手，幸运的是，urllib3提供重试功能，具体的[定义原型](https://urllib3.readthedocs.io/en/latest/reference/urllib3.util.html#module-urllib3.util.retry)如下:
+清楚了这一点，就很容易从urllib3入手，幸运的是，urllib3提供重试功能，具体的[定义原型](https://urllib3.readthedocs.io/en/latest/reference/urllib3.util.html#module-urllib3.util.retry)如下:
 
-```py
-# file: urllib3/util/retry.py
-
+```python
+# urllib3/util/retry.py
 class Retry(total=10, connect=None, read=None, redirect=None, status=None,
             method_whitelist=frozenset(['HEAD', 'TRACE', 'GET', 'PUT', 'OPTIONS', 'DELETE']), 
             status_forcelist=None,
             backoff_factor=0, raise_on_redirect=True, raise_on_status=True, history=None,
-            respect_retry_after_header=True, remove_headers_on_redirect=frozenset(['Authorization'])):
+            respect_retry_after_header=True,
+            remove_headers_on_redirect=frozenset(['Authorization'])):
     pass
-
 ```
 
 重要参数说明:
@@ -46,10 +44,10 @@ class Retry(total=10, connect=None, read=None, redirect=None, status=None,
 了解了Retry的基本定义，再来看下怎么在requests中定制化想要的重试。
 
 稍微翻过requests库源码的人大概都清楚，requests是通过HTTPAdapter来屏蔽上下层之间的耦合，这样做的显著好处就是，
-下层的变更对上层无感知，只要保证对上层的输出不变即可。
+下层的变更对上层无感知，只需保证对上层的输出不变即可。
 
 所以，我们很容易想到一个解决办法:
-```py
+```python
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -73,7 +71,7 @@ def requests_retry_session(session=None, total=3,
 #### 验证
 
 通过一个简单的测试例子验证下想法:
-```py
+```python
 def test():
     import time
     begin = time.time()
@@ -92,7 +90,7 @@ if __name__ == '__main__':
     test()
 ```
 本地没有启动对应端口为8888的server，所以得到了如下结果:
-```
+```shell
 HTTPConnectionPool(host='localhost', port=8888): Max retries exceeded with url: /info (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x106be7890>: Failed to establish a new connection: [Errno 61] Connection refused',))
 
 elapsed time: 1.81431007385
@@ -108,8 +106,8 @@ elapsed time: 1.81431007385
 
 > By default, backoff is disabled (set to 0).
 
-另外，一般在调用过程中，会明确的指定timeout标识请求的超时时间，那再看看配合timeout参数是否符合逾期。
-```py
+另外，一般在调用过程中，会明确的指定timeout标识请求的超时时间，那再看看配合timeout参数是否符合预期。
+```python
 def test():
     import time
     begin = time.time()
@@ -128,7 +126,7 @@ if __name__ == '__main__':
     test()
 ```
 本地启动端口为8888的server，在/delay/10视图中sleep 10s，输出如下：
-```
+```shell
 HTTPConnectionPool(host='127.0.0.1', port=8888): Max retries exceeded with url: /delay/10 (Caused by ReadTimeoutError("HTTPConnectionPool(host='127.0.0.1', port=8888): Read timed out. (read timeout=5)",))
 
 elapsed time: 21.8261728287
@@ -142,10 +140,11 @@ elapsed time: 21.8261728287
 
 上面只是提供了个人的一点思路，最终怎么定制化Retry配置，还看具体的场景。
 
-另外，额外想说的一个问题，在一些中小型公司，由于一些技术原因，微服务内部之间的调用没有抽象出一个RPC层，还是直接在业务层
+另外，想说的一个问题，在一些中小型公司，由于一些技术原因，微服务内部之间的调用没有抽象出一个RPC层，还是直接在业务层
 使用http协议，更糟糕的是，同一个服务不同的人封装http client的方式又不尽相同，导致了client的各种混乱，这里提供一种简易的封装方式
 来规避类似的问题，具体实现:
-```py
+
+```python
 from functools import partial
 from urlparse import urljoin
 
@@ -215,3 +214,4 @@ if __name__ == '__main__':
     print d
 
 ```
+

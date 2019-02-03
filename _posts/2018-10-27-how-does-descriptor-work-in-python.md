@@ -17,7 +17,7 @@ tags:
 
 Python标准语法规定描述符需要实现特定的描述符协议，其具体的描述符协议对应如下:
 
-```
+```python
 
 object.__get__(self, obj, type=None) --> value
 
@@ -29,10 +29,11 @@ object.__delete__(self, obj) --> None
 
 也就是说，如果一个对象定义了任意上述3个方法，则该对象被视为描述符对象，Python解释器会在一定条件下自动触发描述符行为。
 
-描述符从类别上分为两类:数据描述符和非数据描述符，数据描述符需要定义__get__和__set__，非数据描述符只需定义__get__，__delete__方法的定义与是否为数据描述符无关；
+描述符从类别上分为两类:数据描述符和非数据描述符，数据描述符需要定义__get__和__set__，非数据描述符只需定义__get__，__delete__方法的定义与是否为数据描述符无关
+
 数据描述符与非数据描述符之间的差异主要体现在：当实例属性中存在与描述符同名属性时，如果描述符为数据描述符，则数据描述符优先级更高，否则实例属性优先级更高，一个简单对比两者差异的例子：
 
-```
+```python
 class DataDescriptor:
     def __init__(self, x):
         self.x = x
@@ -100,7 +101,7 @@ After write attr, instance dict is {'non_data_age': 90, 'data_age': 233}, attr v
 
 第一种使用方法比较简单，这里主要介绍第二种方式的触发机制，从一个简单的例子看起：
 
-```
+```python
 class Descriptor:
     def __init__(self, name):
         self.name = name
@@ -120,7 +121,7 @@ class Person:
 
 针对类属性访问，也就是Person.name形式，触发机制存在于type.__getattribute__()，Person.name会被转换为Person.__dict__['name'].__get__(None, Person)方式调用描述符协议，整个触发过程类似如下代码:
 
-```
+```python
 def __getattribute__(self, key):
     "Emulate type_getattro() in Objects/typeobject.c"
     v = object.__getattribute__(self, key)
@@ -149,7 +150,7 @@ def __getattribute__(self, key):
 
 property是Python提供的一种快速创建数据描述符的内置函数，也是比较常用的一种创建描述符方式，使用方式有如下两种:
 
-```
+```python
 # first
 class C:
     def __init__(self):
@@ -189,7 +190,7 @@ class D:
 
 property本身也是一个描述符，不过它额外提供了一些公共接口，这里有个property等价实现:
 
-```
+```python
 class property(object):
     "Emulate PyProperty_Type() in Objects/descrobject.c"
 
@@ -233,7 +234,7 @@ class property(object):
 
 先从一个例子看起:
 
-```
+```python
 >>> class D(object):
      def f(self, x):
           return x
@@ -250,7 +251,7 @@ class property(object):
 上述输出中产生了一个奇怪的问题：D属性__dict__中存放的f类型是函数，而通过类或者实例访问，则变成了方法
 
 f自身定义为在命名空间D下的一个函数，但通过属性或者类的访问方式，f类型发生了变化，结合上面讲述的描述符，容易生成一种猜想，Python的函数对象是不是也是一种描述符？简单的验证下猜想：
-```
+```python
 def test():
     pass
 
@@ -265,7 +266,7 @@ print(filter(protocols.__contains__, dir(test)))
 从上述的输出结果中，我们可以得知，Python的函数对象是非数据描述符，这也就解释了为什么通过类或者实例访问时，f类型会产生变化。
 
 关于函数对象的__get__方法实现，这里有个参考的实现:
-```
+```python
 import types
 
 class Function(object):
@@ -280,7 +281,7 @@ class Function(object):
 Python中有两个比较常用的内置函数:classmethod和staticmethod，staticmethod用于缩短代码垂直距离，classmethod用于实现类的多态性，而这两个方法的背后，都用到了描述符。
 
 关于staticmethod的实现，其大概的一种等价实现方式:
-```
+```python
 class staticmethod:
     def __init__(self, func):
         self.func = func
@@ -291,7 +292,7 @@ class staticmethod:
 ```
 而classmethod的等价实现方式也与此类似:
 
-```
+```python
 from functools import partial
 
 

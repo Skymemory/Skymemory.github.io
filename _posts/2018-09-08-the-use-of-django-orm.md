@@ -56,7 +56,7 @@ class Meta:
     unique_together = (('driver', 'restaurant'),)
 ```
 这里简单说下个人看法，Django中可通过字段选项、Meta选项两种方式创建索引(前者不能建联合索引)，不过更建议通过Meta选项指定，好处在我看来有两个:
- 
+
  - 索引定义与字段定义分离，语意明确
  - 便于了解是否存在冗余的索引，举个简单例子:last_name通过字段选项创建索引，Meta中创建联合索引(last_name, first_name)，此时last_name已经是冗余索引，但维护代码的人也不一定能知道
 
@@ -167,7 +167,7 @@ ORM提供了两种方式支持路由:
 
 这里先了解下Router的方式是怎么实现自动路由。考虑一个简单的例子，某个项目下存在auth应用，其配置了两个数据库master和slave，现在需要针对master和slave做读写分离，在ORM中需要怎么做呢？首先需要定义一个类，其实现如下接口:
 
-```
+```python
 class AuthRouter(object):
     """
     A router to control all database operations on models in the
@@ -208,7 +208,7 @@ class AuthRouter(object):
 ```
 
 上述接口就是一个ORM Router类需要自定义的标准接口(也可以只实现你关心的接口)，通过AuthRouter我们指定了路由分配的规则，另外，我们还需要将AuthRouter指定的路由规则告知ORM，以便其进行调度，这通过在项目中的settings.py文件下配置
-```
+```python
 # settings.py
 DATABASE_ROUTERS = ["path.to.AuthRouter"]
 ```

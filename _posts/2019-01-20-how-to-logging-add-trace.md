@@ -13,7 +13,7 @@ tags:
 
 #### 背景
 
-在实际项目中，一个业务系统往往依赖多个微服务，各个微服务又或多或少的进行了水平扩展来避免单点问题，这样带来的一个问题就在于：问题的排查变得异常困难，不同服务之间的调用很难关联上。故而引出了全链路跟踪系统，旨在解决链路调用问题，比如美团MTrace、阿里EagleEye、Zipkin等。
+在实际项目中，一个业务系统往往依赖多个微服务，各个微服务又或多或少的进行了水平扩展来避免单点问题，这样带来的一个问题就在于：问题的排查变得困难，不同服务之间的调用很难关联上。故而引出了全链路跟踪系统，旨在解决链路调用问题，比如美团MTrace、阿里EagleEye、Zipkin等。
 
 本文并不打算介绍全链路跟踪系统的设计，只是提供一个问题的解决思路：如何在业务方无感知的情况下，让业务日志关联跟踪上下文
 
@@ -118,7 +118,8 @@ class TraceManager(object):
 
 class TraceFilter(object):
     def filter(self, record):
-        record.trace_id = TraceManager.all().trace_id
+        ctx = TraceManager.all()
+        record.trace_id = getattr(ctx, 'trace_id', '-')
         return True
 
 
@@ -136,7 +137,7 @@ logger.addHandler(handler)
 TraceManager.set(trace_id=uuid.uuid1())
 
 logger.info('Is ok?')
-logger.debug('yeah, look fine.')
+logger.debug("yeah, look fine.")
 
 TraceManager.clear()
 
@@ -144,7 +145,7 @@ TraceManager.clear()
 
 终端运行脚本文件，输出如下：
 
-```tex
+```sh
 ➜ python demo.py
 trace_id=18149b9e-1c56-11e9-bbe2-f218987397c7 level=INFO message=Is ok?
 trace_id=18149b9e-1c56-11e9-bbe2-f218987397c7 level=DEBUG message=yeah, look fine.

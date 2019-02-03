@@ -7,6 +7,7 @@ header-img: "img/2018-12-08-01-bg.jpeg"
 tags:
     - 存储
     - NoSQL
+    - MongoDB
 ---
 MongoDB是一款开源的、分布式文档型数据库产品，其提供了无结构、高性能、高可用、自动伸缩的特性吸引了不少开发者的青睐，公司里面不少项目中都有它的影子，所以打算学习学习。
 
@@ -98,7 +99,7 @@ db.inventory.find()
 SELECT * FROM inventory
 ```
 等值查询:
-```
+```shell
 db.inventory.find( { status: "D" } )
 等价SQL:
 SELECT * FROM inventory WHERE status = "D"
@@ -137,7 +138,7 @@ MongoDB支持四个逻辑运算符：
 | $or | Joins query clauses with a logical OR returns all documents that match the conditions of either clause. |
 
 一些使用例子:
-```
+```shell
 db.inventory.find( { status: "A", qty: { $lt: 30 } } )
 等价SQL:
 SELECT * FROM inventory WHERE status = "A" AND qty < 30
@@ -184,7 +185,7 @@ MongoDB同样地支持单条、批量更新，不过MongoDB需要特定的更新
 
 更新使用例子:
 
-```py
+```shell
 db.inventory.updateOne({}, {$inc: {qty: 1}})
 等价SQL:
 UPDATE inventory SET qty = qty + 1 LIMIT 1

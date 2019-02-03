@@ -14,7 +14,7 @@ tags:
 
 在实际的开发场景中，常常会遇到这样一类需求：服务A产生了某种类型的事件(比如用户注册、订单状态变更等)，其他依赖服务需要感知到该事件的发生，一般典型的做法就是服务A将对应的事件发布到某个topic下，其他需要关注该事件的服务订阅对应的topic即可，俗称Pub/Sub模式。
 
-构建于Django框架之上的项目，往往都存在多个应用，不同应用之间的事件通知就变得很重要了，Signal则是Django官方提供的一种”信号分发器“来帮助开发者更好的解藕事件发送方和事件接收方。
+构建于Django框架之上的项目，往往都存在多个应用，不同应用之间的事件通知就变得很重要了，Signal则是Django官方提供的一种事件管理器来帮助开发者更好的解藕事件发送方和事件接收方。
 
 #### 初窥
 
@@ -38,11 +38,45 @@ Signal类定义在Django源代码下dispatch/dispatcher.py模块中，对外提�
 
 ```python
 def connect(self, receiver, sender=None, weak=True, dispatch_uid=None):
+    """
+    Connect receiver to sender for signal.
+
+    Arguments:
+
+        receiver
+            A function or an instance method which is to receive signals.
+            Receivers must be hashable objects.
+
+            If weak is True, then receiver must be weak referenceable.
+
+            Receivers must be able to accept keyword arguments.
+
+            If a receiver is connected with a dispatch_uid argument, it
+            will not be added if another receiver was already connected
+            with that dispatch_uid.
+
+        sender
+            The sender to which the receiver should respond. Must either be
+            a Python object, or None to receive events from any sender.
+
+        weak
+            Whether to use weak references to the receiver. By default, the
+            module will attempt to use weak references to the receiver
+            objects. If this parameter is false, then strong references will
+            be used.
+
+        dispatch_uid
+            An identifier used to uniquely identify a particular instance of
+            a receiver. This will usually be a string, though it may be
+            anything hashable.
+    """
     from django.conf import settings
 
+    # If DEBUG is on, check that we got a good receiver
     if settings.configured and settings.DEBUG:
         assert callable(receiver), "Signal receivers must be callable."
 
+        # Check for **kwargs
         if not func_accepts_kwargs(receiver):
             raise ValueError("Signal receivers must accept keyword arguments (**kwargs).")
 
@@ -54,6 +88,7 @@ def connect(self, receiver, sender=None, weak=True, dispatch_uid=None):
     if weak:
         ref = weakref.ref
         receiver_object = receiver
+        # Check for bound methods
         if hasattr(receiver, '__self__') and hasattr(receiver, '__func__'):
             ref = WeakMethod
             receiver_object = receiver.__self__
