@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "2018——问道与入世"
+title:      "2018—问道与入世"
 date:       2019-02-02 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-02-02-01-bg.jpeg"
