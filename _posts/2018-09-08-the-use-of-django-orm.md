@@ -193,7 +193,7 @@ values_list、values方法使用例子:
 <QuerySet [{'id': 1, 'name': 'Beatles Blog', 'tagline': 'All the latest Beatles news.'}]>
 ```
 
-
+select_related、prefetch_related方法区别在于select_related在存储层解决join，prefetch_related恰恰相反—在应用层解决join
 
 ---
 
