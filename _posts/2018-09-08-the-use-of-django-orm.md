@@ -114,7 +114,7 @@ UPDATE `crm_facetaskperf` SET `username` = 'admin', `product_id` = 10, `audit_da
 ***对需要更新的字段，save时通过update_fields明确指定***
 
 比如刚才的例子我们可以通过如下方式达到预期:
-```py
+```python
 o = FaceTaskPerf.objects.get(id=2)
 
 o.taken_nums += 1
@@ -268,6 +268,51 @@ DATABASE_ROUTERS = ["path.to.AuthRouter"]
 
 
 
+#### 执行原生SQL
+
+```python
+from django.db import connections
+
+def my_custom_sql(self):
+    with connections['my_db_alias'].cursor() as cursor:
+        cursor.execute("UPDATE bar SET foo = 1 WHERE baz = %s", [self.baz])
+        cursor.execute("SELECT foo FROM bar WHERE baz = %s", [self.baz])
+        row = cursor.fetchone()
+
+    return row
+
+```
+
+#### 查看执行SQL
+
+QuerySet对象可通过query属性查看执行sql，如:
+
+```python
+In [12]: qs = BaseUser.objects.all()
+
+In [13]: str(qs.query)
+Out[13]: 'SELECT `base_user_baseuser`.`id`, `base_user_baseuser`.`app`, `base_user_baseuser`.`user_id`, `base_user_baseuser`.`app_uid`, `base_user_baseuser`.`phone`, `base_user_baseuser`.`cha
+nnel`, `base_user_baseuser`.`push_token`, `base_user_baseuser`.`device_type`, `base_user_baseuser`.`device_id`, `base_user_baseuser`.`app_version_rds` FROM `base_user_baseuser`'
+
+```
+
+Django ORM是否记录执行sql取决于如下函数:
+
+```python
+class BaseDatabaseWrapper(object):
+    @property
+    def queries_logged(self):
+        return self.force_debug_cursor or settings.DEBUG
+```
+
+通过配置django.db.backends即可在DEBUG环境下记录执行sql语句，force_debug_cursor可在线上临时查看，使用方法如下方式:
+
+```python
+from django.db import connections
+for alias in connections:
+	connections[alias].force_debug_cursor = True
+```
+
 参考:
 
 [QuerySet API reference](https://docs.djangoproject.com/en/1.11/ref/models/querysets/)
@@ -275,3 +320,5 @@ DATABASE_ROUTERS = ["path.to.AuthRouter"]
 [Making queries](https://docs.djangoproject.com/en/1.11/topics/db/queries/)
 
 [Multiple Databases](https://docs.djangoproject.com/en/1.11/topics/db/multi-db/)
+
+[Performing raw SQL queries](https://docs.djangoproject.com/en/2.1/topics/db/sql/)
