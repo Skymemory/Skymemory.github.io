@@ -9,300 +9,244 @@ tags:
     - Python
 ---
 
-Celery是一个基于Python开发的简单、灵活且可靠的分布式任务队列系统，主要关注于实时任务的处理，同时也提供对定时、周期性任务的支持，其基本架构图如图所示：
+Celery是一个基于Python开发的分布式任务队列系统，支持实时性、周期性任务，各组件关系图：
 
 ![](/img/2018-11-18-01-01.jpeg)
-
-重要组件说明:
-
-1. Producer: 任务生产者，调用Celery提供的API产生任务
-2. Broker：消息中间件，接受任务生产者发送的消息
-3. Consumer: 任务消费者，通过从broker中获取消息并消费
-4. Celery Beat: 任务调度器，Beat进程会根据配置文件的内容，将需要执行的任务发送给broker
-5. Result Store: 保存Consumer执行完任务的结果，以供查询
 
 ---
 
 #### Broker
 
-Celery目前支持的Broker有四种:*RabbitMQ*、*Redis*、*Amazon SQS*、*Zookeeper*，前三个都可用于生产环境中，*Zookeeper*还处在试验阶段。
-
-Celery官方推荐使用RabbitMQ作为Broker，这里为了简单起见，本文例子采用的是Redis，Celery版本为4.2.1
+Celery支持多种Broker，完整支持列表[Brokers](http://docs.celeryproject.org/en/latest/getting-started/brokers/)，官方推荐使用RabbitMQ作为Broker，为简单起见，本文使用Redis作为例子介绍。
 
 ---
 
 #### 一个简单的例子
 
-同一文件夹下创建tasks.py、celerycfg.py两个文件
+同一文件夹下创建tasks.py、celerycfg.py两个文件，文件内容分别为：
 
-```py
+```python
 # file: tasks.py
-
 from celery import Celery
 
-
-app = Celery('tasks')
-
-app.config_from_object('celerycfg')
+celery_app = Celery('tasks')
+celery_app.config_from_object('celerycfg')
 
 
-@app.task
+@celery_app.task
 def add(x, y):
     return x + y
 
-@app.task
-def feeds():
-    print "It's feeds task."
-
 ```
 
-Celery运行需要一个Celery类的实例，也就是上述代码中的app，在启动Celery时通过-A选项明确指定
-
-```py
+```python
 # file: celerycfg.py
-
+import pytz
 
 # 使用Redis做Broker
-
 broker_url = 'redis://localhost'
 
 # 任务结果存放于Redis
-
 result_backend = 'redis://localhost/1'
 
 # 任务序列化方式为json
-
 task_serializer = 'json'
 
 # 消费者只处理任务序列化方式为json的消息
-
 accept_content = ['json']
 
 # 结果序列化方式同样为json
-
 result_serializer = 'json'
 
 # 结果过期时间
-
 result_expires = 5 * 60 * 60
 
-# 当指定队列不存在时，默认不创建
+# 指定时区，消息中的日期时间都会格式化为对应时区isoformat
+timezone = pytz.timezone('Asia/Shanghai')
 
-task_create_missing_queues = False
 ```
 
-对于celerycfg.py文件中的配置，我们可以通过python -m celerycfg来检查是否语法正确，这里对一些配置选项进行简要说明:
-- broker_url: 格式为transport://userid:password@hostname:port/virtual_host，除transport是必须的，其他部分可选配置
-- result_backend: 支持多种方式，如rpc、database、redis等，具体可参见官方文档[result_backend](http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-result_backend)
-- task_serializer: 默认为*json*，支持*pickle*、*yaml*、*msgpack*，可自定义序列化方法
-- accept_content: 默认为*json*，支持其他类型
-- result_expires: 结果过期时间，由celery.backend_cleanup任务定时清理过期的结果
-- task_create_missing_queues: 建议此选项设置为False，Celery默认会创建没有定义在task_queues中的队列
-
-关于更多配置选项的说明，可参考Celery官方文档 [Configuration and defaults](http://docs.celeryproject.org/en/latest/userguide/configuration.html)
+完整的配置选项说明 [Configuration and defaults](http://docs.celeryproject.org/en/latest/userguide/configuration.html)
 
 启动消费者进程:
 
 `celery worker -A tasks -l DEBUG`
 
-上述启动过程中终端会显示一些有帮助的信息，比如消息中间件和存储结果的地址、并发数量、任务列表等，可通过如上信息判断配置是否符合预期。
+![celery-startup](/img/2018-11-18-01-01.png)
 
-通过IPython调用add函数来验证下是否符合我们逾期:
+启动过程中，终端会显示当前worker节点信息（如：broker地址、注册任务、监听队列等），可用于判断worker节点配置是否符合预期。
 
-```py
-In [1]: from tasks import add
+Celery提供两种方式触发异步任务，调用任务提供的方法：`delay`和`apply_async`。
 
-In [2]: r = add.delay(10, 20)
+通过`celery shell -A tasks`打开终端：
 
-In [3]: r.result
-Out[3]: 30
+```python
+In [1]: r = add.delay(2, 3)
 
-In [4]: r.successful()
-Out[4]: True
+In [2]: r.task_id
+Out[2]: 'a3c4eb27-11c9-42e6-9f05-57e17af63f68'
 
-In [5]: r.status
-Out[5]: u'SUCCESS'
+In [3]: r.status
+Out[3]: u'SUCCESS'
 
-In [6]: r
-Out[6]: <AsyncResult: 72dbaff2-11ee-4af0-afa0-f1d3200d3a19>
+In [4]: r.result
+Out[4]: 5
 
-In [7]: r.task_id
-Out[7]: '72dbaff2-11ee-4af0-afa0-f1d3200d3a19'
-```
-从对应的终端中，可以观察到消费者接受并消费了该任务:
-```
-[2018-11-18 15:41:53,299: INFO/MainProcess] Received task: tasks.add[72dbaff2-11ee-4af0-afa0-f1d3200d3a19]
-[2018-11-18 15:41:53,299: DEBUG/MainProcess] TaskPool: Apply <function _fast_trace_task at 0x1045d2578> (args:(u'tasks.add', u'72dbaff2-11ee-4af0-afa0-f1d3200d3a19', {u'origin': u'gen64307@MemorydeMacBook-Pro.local', u'lang': u'py', u'task': u'tasks.add', u'group': None, u'root_id': u'72dbaff2-11ee-4af0-afa0-f1d3200d3a19', u'delivery_info': {u'priority': 0, u'redelivered': None, u'routing_key': u'celery', u'exchange': u''}, u'expires': None, u'correlation_id': u'72dbaff2-11ee-4af0-afa0-f1d3200d3a19', u'retries': 0, u'timelimit': [None, None], u'argsrepr': u'(10, 20)', u'eta': None, u'parent_id': None, u'reply_to': u'f728a365-0f4a-314e-9100-bcf74e86896f', u'shadow': None, u'id': u'72dbaff2-11ee-4af0-afa0-f1d3200d3a19', u'kwargsrepr': u'{}'}, '[[10, 20], {}, {"chord": null, "callbacks": null, "errbacks": null, "chain": null}]', u'application/json', u'utf-8') kwargs:{})
-[2018-11-18 15:41:53,300: DEBUG/MainProcess] Task accepted: tasks.add[72dbaff2-11ee-4af0-afa0-f1d3200d3a19] pid:64289
-[2018-11-18 15:41:53,312: INFO/ForkPoolWorker-12] Task tasks.add[72dbaff2-11ee-4af0-afa0-f1d3200d3a19] succeeded in 0.0114071560092s: 30
-```
-通常情况下，会通过两种调用方式触发异步任务: ***delay*** 和 ***apply_async***，事实上，delay只是对apply_async简单包装一下，其内部还是调用apply_async，
-从celery.app.tasks.Task类实现中可以看出:
-
-```py
-def delay(self, *args, **kwargs):
-    """Star argument version of :meth:`apply_async`.
-
-    Does not support the extra options enabled by :meth:`apply_async`.
-    """
-    return self.apply_async(args, kwargs)
-```
-apply_async支持不少参数，基本函数签名为:
-```py
-def apply_async(self, args=None, kwargs=None, task_id=None, producer=None,
-                link=None, link_error=None, shadow=None, **options):
-```
-这里列举几个比较常用的参数:
-- countdown: 指定任务多少秒后执行
-- eta: 任务具体被调度的时间，也就是任务执行的时间
-- expires: 任务过期时间
-
-例如，指定任务20S后执行:
-```py
-In [36]: add.apply_async(args=(2, 3), countdown=20)
-Out[36]: <AsyncResult: 1e4e49b2-8074-4ca3-8447-644663c88af9>
+In [5]: r
+Out[5]: <AsyncResult: a3c4eb27-11c9-42e6-9f05-57e17af63f68>
 ```
 
-另外，有时排查问题时，我们只知道task_id，需要获取之前任务执行的结果怎么办呢？Celery提供了根据task_id来获取任务执行结果的方式:
-```py
-In [1]: from tasks import add
+`delay`方法会返回一个`AsyncResult`对象，通过该对象，可获取到对应任务id、任务执行结果、任务状态等信息
 
-In [2]: add.AsyncResult('72dbaff2-11ee-4af0-afa0-f1d3200d3a19').get()
-Out[2]: 30
+`delay`方法只是对`apply_async`方法做了简单的封装，`apply_async`支持更多的参数，如可通过指定countdown、eta、expires关键参数明确任务执行时间或任务过期时间:
 
-In [3]: from celery.result import AsyncResult
+```python
+In [1]: import pytz
 
-In [4]: AsyncResult('72dbaff2-11ee-4af0-afa0-f1d3200d3a19').get()
-Out[4]: 30
+In [2]: import datetime
+
+In [3]: eta = datetime.timedelta(minutes=10) + app.conf.timezone.localize(datetime.datetime.now())
+
+In [4]: add.apply_async(args=(89, 10), eta=eta)
+Out[4]: <AsyncResult: 7b3aeb2d-c0b2-4363-a4e6-bc8b355881f8>
+
+In [5]: add.apply_async(args=(5, 10), countdown=20)
+Out[5]: <AsyncResult: 82eea5d1-4ae6-4b78-8762-465cd92ec91f>
+
+In [6]: add.apply_async(args=(5, 10), expires=20)
+Out[6]: <AsyncResult: 48b6cced-1abd-4ac0-b4ff-f3a10e47e378>
+```
+
+根据task_id获取任务的状态、结果等信息：
+
+```python
+In [13]: from celery.result import AsyncResult
+
+In [14]: ar = AsyncResult('48b6cced-1abd-4ac0-b4ff-f3a10e47e378')
+
+In [15]: ar.status
+Out[15]: u'SUCCESS'
+
+In [16]: ar.result
+Out[16]: 15
 ```
 
 ---
 
 #### 指定队列
-Celery默认会将任务存放在名为celery的队列，我们也可以创建应用程序自身需要的队列并指定路由规则来实现多队列的分工。
 
-```py
-# file: celerycfg.py
+Celery默认会将任务路由到队列名为celery的队列中，也可以自定义队列名及路由规则将任务路由到不同队列避免任务积压导致处理延迟问题。
 
+`celerycfg.py`、`tasks.py`文件中分别增加如下内容：
+
+```python
+# celerycfg.py
 from kombu import Queue
 
-# 使用Redis做Broker
-
-broker_url = 'redis://localhost'
-
-# 任务结果存放于Redis
-
-result_backend = 'redis://localhost/1'
-
-# 任务序列化方式为json
-
-task_serializer = 'json'
-
-# 消费者只处理任务序列化方式为json的消息
-
-accept_content = ['json']
-
-# 结果序列化方式同样为json
-
-result_serializer = 'json'
-
-# 结果过期时间
-
-result_expires = 5 * 60 * 60
-
-# 当指定队列不存在时，默认不创建
-
-task_create_missing_queues = False
-
-# 更改默认队列名
-
-task_default_queue = 'default'
-
-# 定义任务队列
-
+# 指定默认队列名
+task_default_queue = 'canal'
 task_queues = (
-    Queue('default'),
-    Queue('feeds')
+    Queue('canal.feed'),
+    Queue('canal'),
+    Queue('canal.notify'),
 )
-
-# 指定路由规则
-
 task_routes = {
-    'tasks.feeds': 'feeds'
+    'tasks.add': 'canal',
+    'tasks.notify': 'canal.notify',
+    'tasks.feed': 'canal.feed',
 }
 ```
-通过-Q参数指定消费者进程从指定队列中获取任务:
+```python
+# tasks.py
+@celery_app.task
+def notify():
+    print "notify task is executing"
 
-`celery worker -A tasks -Q feeds -l DEBUG`
+@celery_app.task
+def feed():
+    print "feed task is executing"
+```
 
-上述worker只会执行feeds队列中的任务，通过这种方式，我们可以将一些优先级比较高的任务单独存放在一个队列中，由指定的worker进行消费，
-其他相对不那么重要的任务存放在另外的队列中来避免任务处理延迟、堆积等问题
+启动消费者时，通过`-Q`选项明确指定监听队列：
 
-另外，**强烈建议更改默认队列名**，有些公司测试或pre环境为了图方便，不少服务部署到同一台机器上，在这种情况下，如果别人的broker地址和你的一样，
-有可能会导致任务丢失
+`celery worker -A tasks -l DEBUG -Q canal.feed,canal.notify`
+
+Celery会将任务模块名和任务名拼接`module_name.task_name`，根据`task_routes`获取对应的`routing_key`。
+
+个人建议默认队列名不要用celery名称，在一些公司中，不免会遇到同一个测试环境中部署几个不同服务，如果自己负责的服务测试环境broker地址和别的服务一样，可能会导致任务丢失，建议默认队列名为服务名，剩余队列以`service_name.name`命名。
 
 ---
 
 #### Celery Beat
 
-Celery Beat主要用于管理定时、周期性任务，任务由beat_schedule指定，在celerycfg.py中添加如下配置:
-```py
-from datetime import timedelta
+`Celery Beat`用于管理周期性任务，周期性任务通过`beat_schedule`配置项指定，在`celerycfg.py`中添加如下配置:
+
+```python
+from celery.schedules import crontab
+
 beat_schedule = {
     'add': {
         'task': 'tasks.add',
-        'schedule': timedelta(seconds=20),
-        'args': (10, 10)
+        'schedule': crontab(minute='*/2'),
+        'args': (10, 10),
     }
 }
 ```
 
-beat_schedule配置项指定tasks.add任务每隔20S执行一次，执行时的参数为10和10
-
-启动beat进程和对应的worker:
+启动beat进程：
 
 `celery beat -A tasks -l DEBUG`
 
-`celery worker -A tasks -l DEBUG -Q default`
-
-从终端中，可以看到对应任务的执行情况
-
-同样地，Celery也支持Linux cron调度方式，具体参考配置见[celery.schedules](http://docs.celeryproject.org/en/latest/reference/celery.schedules.html#celery.schedules.crontab)
+每隔两分钟，通过worker终端，可看到任务执行情况，具体`crontab`说明，参见[crontab](http://docs.celeryproject.org/en/latest/reference/celery.schedules.html#celery.schedules.crontab)
 
 ---
 
-#### 任务绑定、重试
+#### 任务重试、撤销
 
-有时在执行任务时，可能会遇到网络不佳等意外情况，此时需要任务进行一定次数的重试，Celery同样提供了任务重试功能，在tasks.py中添加如下任务:
-```py
-@app.task(bind=True)
+`worker`在执行任务时，可能会遇到网络不可达等需要任务重试的情况，Celery同样提供了任务重试机制，在`tasks.py`中添加如下内容：
+
+```python
+@celery_app.task(bind=True)
 def div(self, x, y):
     try:
-        retval = x / y
+        r = x / y
     except ZeroDivisionError as e:
-        raise self.retry(exc=e, countdown=10, max_retries=3)
-
-    return retval
+        raise self.retry(exc=e, max_retries=3, countdown=20)
+    return r
 ```
-然后在IPython中进行异常参数的调用:
 
-`In : r = div.delay(2, 0)`
+通过`celery shell`调用`div(2,0)`，从对应的终端，会看到任务执行了重试逻辑。
 
-在终端中，我们会发现对应的任务每隔10S就会进行重试，一共重试3次，然后抛出异常。
+异步带来的一个典型好处在于可以撤销之前的任务，这在`Celery`中也可以做到。
 
-可能有的人会存在疑问，自己在div中控制重试逻辑不也ok么？类似采用[Exponential Backoff](https://en.wikipedia.org/wiki/Exponential_backoff)的思想，嗯，
-看上去好像没什么差异，将上述代码中的worker节点启动2个，然后重新执行重试，你会发现两者之间的差异。
+```python
+In [5]: from celery.task.control import revoke
+
+In [6]: r = add.apply_async(args=(1,2), countdown=100)
+
+In [7]: r.revoke()
+
+In [8]: r1 = add.apply_async(args=(10, 20), countdown=200)
+
+In [9]: revoke(r1.task_id)
+```
+
+
+
+---
+
+#### Flower
+
+`Flower`是基于`web`的监控和管理`celery`的工具，提供了常规监控功能，如队列长度、`worker`状态及统计、任务详细信息等，具体使用说明可参见官方文档[Flower](https://flower-docs-cn.readthedocs.io/zh/latest/)。
+
+一般通过如下命令启动即可：
+
+`flower -A tasks —-max_tasks=5000 --port=800`
 
 ---
 
 #### 未完待续
 
-上面只是简单介绍了Celery使用，还有些更进一步的知识需要了解，比如:
+本文只是简单介绍了Celery使用，还有些更进一步的知识需要了解，比如:
 - 消费、确认机制
 - AMQP协议
-
-#### 参考链接
-
-[使用Celery](https://zhuanlan.zhihu.com/p/22304455)
-
-[异步任务神器](http://funhacks.net/2016/12/13/celery/)
