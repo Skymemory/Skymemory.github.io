@@ -4,9 +4,7 @@ title:      "n + 1个元素，每个元素值域为[1,n]，其中某个元素重
 date:       2018-08-26 19:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-08-26-01-bg.webp"
-tags:
-    - 算法
-    - 二分
+tags: Algorithm
 ---
 
 
