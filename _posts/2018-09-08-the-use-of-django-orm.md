@@ -91,8 +91,10 @@ Django支持单条、批量数据插入方式，这里简要说明下批量插�
 ...     Entry(headline='This is only a test'),
 ... ])
 ```
-批量插入函数原型为:
+批量插入函数原型为
+
 `bulk_create(objs, batch_size=None)`
+
 batch_size用于指定批量大小，比如objs中存在1000条数据，batch_size为100，则需要10次网络请求(一次100条)才能插入整个数据
 
 ##### 更新

@@ -30,7 +30,7 @@ Redis默认提供了5种方式设置生存或过期时间，其基本语法大�
 
 Redis虽然提供了5种设置时间的方式，其内部设置方式却通过PEXPIREAT实现，其他的命令皆可间接转换为PEXPIREAT，具体转换逻辑伪代码如下所示：
 
-```
+```python
 def EXPIRE(key,ttl_in_sec):
 
     #将TTL从秒转换成毫秒
@@ -56,7 +56,7 @@ def EXPIREAT(key,expire_time_in_sec):
 ```
 
 键设置过期时间后，可通过TTL或PTTL查看键的剩余生存时间：
-```
+```powershell
 redis> set name SkyMemory
 OK
 
@@ -73,7 +73,7 @@ redis> ttl name
 
 同样地，可以通过PERSIST命令显示删除键的过期时间：
 
-```
+```powershell
 redis> set name skymemory ex 120
 OK
 
@@ -105,7 +105,7 @@ Redis内部记录键过期时间格式为绝对Unix时间戳，精确到毫秒�
 
 
 定时删除，又称主动删除，基本思路大概就是服务器定期(默认1S运行10次)运行删除过期键的任务来清理失效键，整个过程的伪代码描述如下：
-```
+```python
 # 默认每次检查的数据库数量
 DEFAULT_DB_NUMBERS = 16
 
