@@ -1,0 +1,159 @@
+---
+
+layout:     post
+title:      "Dynamic Programming Of LeetCode"
+date:       2019-04-17 15:00:00 +0800
+author:     "Sky丶Memory"
+header-img: "img/2019-04-17-01-bg.jpg"
+tags: Algorithm Leetcode DP
+usemathjax: true
+
+---
+
+整理了一些*LeetCode*上比较有意思或当时没思路的题目，其中大部分都是*DP*。
+
+#### [Edit Distance](<https://leetcode.com/problems/edit-distance/>)
+
+定义*dp[i\][j]*表示*s[0…i]*、*t[0…j]*最短编辑距离，考察*s[i]*、*t[j]*：
+
+- 若*s[i] = t[j]*，*dp[i\][j] = dp[i - 1\][j - 1]*
+- 若*s[i] $$\neq$$ t[j]*，分三种情况
+  - 替换：*dp[i\][j] = dp[i - 1\][j - 1]  +  1*
+  - 插入：*dp[i\][j] = dp[i\][j - 1]  +  1*
+  - 删除：*dp[i\][j] = dp[i - 1\][j]  +  1*
+
+根据上述分析，可得出状态转移方程：
+
+ $$dp[i][j]=
+
+\begin{cases}
+
+dp[i-1][j-1] & s[i] = t[j] \\
+
+\min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]) + 1 & s[i] \neq t[j]
+
+\end{cases}$$
+
+解题代码：
+
+```python
+class Solution:
+    def minDistance(self, word1: str, word2: str) -> int:
+        INF = 10 ** 9
+        n, m = len(word1), len(word2)
+        if not (n and m):
+            return abs(n - m)
+        dp = [[INF] * m for _ in range(n)]
+        
+        dp[0][0] = 1 if word1[0] != word2[0] else 0
+        
+        for i in range(1, m):
+            dp[0][i] = dp[0][i - 1] + 1 if word1[0] != word2[i] else i
+        
+        for j in range(1, n):
+            dp[j][0] = dp[j - 1][0] + 1 if word1[j] != word2[0] else j
+            
+        for i in range(1, n):
+            for j in range(1, m):
+                if word1[i] == word2[j]:
+                    dp[i][j] = dp[i - 1][j - 1]
+                else:
+                    dp[i][j] = min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]) + 1
+        return dp[n - 1][m - 1]
+```
+
+---
+
+#### [Unique Binary Search Trees](<https://leetcode.com/problems/unique-binary-search-trees/>)
+
+完全的思维题目，思维方向不对的话，感觉很难做出来。
+
+*dp[i\]*表示*i*个节点的不同二叉搜索树个数，通过枚举可能的根节点，累计计数即可。比如当*n=5*时，以*2*为根节点的不同二叉搜索树个数为 *dp[1] \* dp[3]*（根节点为*2*左支节点个数为*1*，右支节点个数为*3*），这样重叠子问题的性质就体现出来了，状态转移方程为：
+
+$$dp[i] = 
+
+\begin{cases}
+
+1 & i = 0,1\\
+
+\sum_{j=0}^{i-1}  dp[j] * dp[i - j - 1] & i \geq 2
+
+\end{cases}$$
+
+解题代码:
+
+```python
+class Solution:
+    def numTrees(self, n: int) -> int:
+        dp = [1 for _ in range(n + 1)]
+        for i in range(2, n + 1):
+            dp[i] = 0
+            for j in range(i):
+                dp[i] += dp[j] * dp[i - j - 1]
+        return dp[n]
+```
+
+---
+
+#### [Largest Rectangle in Histogram](<https://leetcode.com/problems/largest-rectangle-in-histogram/>)
+
+解题的关键点在于最优矩形中存在一个性质：*假设最优矩形以i为起点、j为终点，那必然存在heights[i] > heights[i - 1]、heights[j] > heights[j + 1]*。
+
+由该性质可以得出，矩形的右边界所在的位置必然是个降序点（两端点外的边界可看成是高度为*0*的直方图），找到可能的右边界点，据此计算已经能确定的左边界点，这样就能做到在*O(n)*时间范围内求解出结果。
+
+解题代码:
+
+```python
+class Solution:
+    def largestRectangleArea(self, heights: List[int]) -> int:
+        ans = 0
+        dq = collections.deque()
+        for idx, h in enumerate(itertools.chain(heights, [0])):
+            last = None
+            while dq and dq[-1][1] >= h:
+                left, n_h = last = dq.pop()
+                ans = max(ans, (idx - left) * n_h)
+            dq.append((last[0] if last else idx, h))
+        return ans
+```
+
+
+
+---
+
+####  [ Maximal Rectangle](<https://leetcode.com/problems/maximal-rectangle/>)
+
+这道题目比较有意思，利用前缀和思想是很容易想到*O(n \* m \* $$\min(n, m)$$)*，不过时间复杂度还是略微有点高。
+
+最优解的做法在于将问题转换为另一个问题——[Largest Rectangle in Histogram](<https://leetcode.com/problems/largest-rectangle-in-histogram/>)，这样就能通过枚举不同行在*O(n \* m)*时间复杂度范围内解决。
+
+解题代码：
+
+```python
+class Solution:
+    def maximalRectangle(self, matrix: List[List[str]]) -> int:
+        if not matrix:
+            return 0
+        n, m = len(matrix), len(matrix[0])
+        h = [0] * m
+        ans = 0
+        for i in range(n):
+            for j in range(m):
+                h[j] = 0 if matrix[i][j] == '0' else h[j] + 1
+            ans = max(ans, self.largestRectangleArea(h))
+        return ans
+             
+    def largestRectangleArea(self, heights: List[int]) -> int:
+        ans = 0
+        dq = collections.deque()
+        for idx, h in enumerate(itertools.chain(heights, [0])):
+            last = None
+            while dq and dq[-1][1] >= h:
+                left, n_h = last = dq.pop()
+                ans = max(ans, (idx - left) * n_h)
+            dq.append((last[0] if last else idx, h))
+              
+            
+        return ans
+```
+
