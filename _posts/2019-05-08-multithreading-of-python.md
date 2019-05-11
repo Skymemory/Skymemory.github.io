@@ -4,7 +4,7 @@ title:      "Python之多线程编程"
 date:       2019-05-08 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-05-08-01-bg.jpg"
-tags: Python Concurrence
+tags: Python Concurrence Thread
 usemathjax: true
 
 ---
@@ -288,6 +288,29 @@ for _ in threads:
 
 for t in threads:
     t.join()
+```
+
+---
+
+#### 线程池
+
+线程创建、销毁存在一定的开销，很多时候是通过采用线程池的方式来避免了这部分开销。标准库中同样提供了线程池供开发者使用，其接口与进程池接口一致:
+
+```python
+from multiprocessing.pool import ThreadPool
+
+def multiply(a, b):
+    return a * b
+
+with ThreadPool(4) as thread_pool:
+    tasks = []
+    for i in range(1, 10):
+        for j in range(10, 20):
+            tasks.append((i, j))
+
+    output = thread_pool.starmap_async(multiply, tasks)
+    print(output.get())
+
 ```
 
 ---
