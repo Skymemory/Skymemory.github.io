@@ -14,21 +14,21 @@ usemathjax: true
 
 #### [Edit Distance](<https://leetcode.com/problems/edit-distance/>)
 
-定义*dp[i\][j]*表示*s[0…i]*、*t[0…j]*最短编辑距离，考察*s[i]*、*t[j]*：
+定义$dp[i+1][j+1]$表示*s[0…i]*、*t[0…j]*最短编辑距离，考察*s[i]*、*t[j]*：
 
-- 若$s[i] = t[j]，dp[i][j] = dp[i - 1][j - 1]$
+- 若$s[i] = t[j]，dp[i+1][j+1] = dp[i][j]$
 - 若$s[i] \neq t[j]$，分三种情况
-  - 替换：$dp[i][j] = dp[i - 1][j - 1]  +  1$
-  - 插入：$dp[i][j] = dp[i][j - 1]  +  1$
-  - 删除：$dp[i][j] = dp[i - 1][j]  +  1$
+  - 替换：$dp[i+1][j+1] = dp[i][j]  +  1$
+  - 插入：$dp[i+1][j+1] = dp[i+1][j]  +  1$
+  - 删除：$dp[i+1][j+1] = dp[i][j+1]  +  1$
 
 根据上述分析，可得出状态转移方程：
 
-$$dp[i][j]=\begin{cases}
+$$dp[i+1][j+1]=\begin{cases}
 
-dp[i-1][j-1] & s[i] = t[j] \\
+dp[i][j] & s[i] = t[j] \\
 
-\min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]) + 1 & s[i] \neq t[j]
+\min(dp[i][j], dp[i][j+1], dp[i+1][j]) + 1 & s[i] \neq t[j]
 
 \end{cases}$$
 
@@ -37,27 +37,23 @@ dp[i-1][j-1] & s[i] = t[j] \\
 ```python
 class Solution:
     def minDistance(self, word1: str, word2: str) -> int:
-        INF = 10 ** 9
-        n, m = len(word1), len(word2)
-        if not (n and m):
-            return abs(n - m)
-        dp = [[INF] * m for _ in range(n)]
+        l1, l2 = len(word1), len(word2)
+        dp = [[0] * (l2 + 1) for _ in range(l1 + 1)]
         
-        dp[0][0] = 1 if word1[0] != word2[0] else 0
+        for j in range(l2 + 1):
+            dp[0][j] = j
         
-        for i in range(1, m):
-            dp[0][i] = dp[0][i - 1] + 1 if word1[0] != word2[i] else i
+        for i in range(l1 + 1):
+            dp[i][0] = i
         
-        for j in range(1, n):
-            dp[j][0] = dp[j - 1][0] + 1 if word1[j] != word2[0] else j
-            
-        for i in range(1, n):
-            for j in range(1, m):
+        for i in range(l1):
+            for j in range(l2):
                 if word1[i] == word2[j]:
-                    dp[i][j] = dp[i - 1][j - 1]
+                    dp[i + 1][j + 1] = dp[i][j]
                 else:
-                    dp[i][j] = min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]) + 1
-        return dp[n - 1][m - 1]
+                    dp[i + 1][j + 1] = min(dp[i][j], dp[i][j + 1], dp[i + 1][j]) + 1
+        
+        return dp[l1][l2]
 ```
 
 ---
@@ -173,4 +169,31 @@ class Solution:
                 dp[i][j + 2] = max(dp[i][j + 1], nums[j] + dp[i][j])
         return max(itertools.chain.from_iterable(dp))
 ```
+
+---
+
+#### [ Minimum Score Triangulation of Polygon](https://leetcode.com/problems/minimum-score-triangulation-of-polygon/)
+
+*dp\[i]\[j]*表示沿顺时针方向，以*i*为起点、*j*为终点的多边形三角化最小值，通过枚举可能的分割点故而得到状态转移方程：
+
+$$dp[i][j]=\min(dp[i][k] + A[i]*A[k]*A[j] + dp[k][j])，i < k < j $$
+
+解题代码:
+
+```python
+class Solution:
+    def minScoreTriangulation(self, A: List[int]) -> int:
+        n = len(A)
+        dp = [[0] * n for _ in range(n)]
+        for j in range(3, n + 1):
+            for i in range(0, n - j + 1):
+                v_min = 10 ** 9 
+                for k in range(i + 1, i + j - 1):
+                    v_min = min(dp[i][k] + A[i] * A[k] * A[i + j - 1] + dp[k][i + j - 1],
+                                v_min)
+                dp[i][i + j - 1] = v_min
+        return dp[0][n - 1]        
+```
+
+
 
