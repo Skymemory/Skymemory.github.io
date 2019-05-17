@@ -141,6 +141,6 @@ MSS(**Maximum Segment Size**)，最大TCP分段大小，不包含TCP首部和opt
 
 [TCP那些事儿(下)](https://coolshell.cn/articles/11609.html)
 
-[关于TCP半连接队列和全连接队列]([http://jm.taobao.org/2017/05/25/525-1/](http://jm.taobao.org/2017/05/25/525-1/))
+[关于TCP半连接队列和全连接队列](http://jm.taobao.org/2017/05/25/525-1/)
 
-[How TCP backlog works in Linux]([http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html](http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html))
+[How TCP backlog works in Linux](http://veithen.io/2014/01/01/how-tcp-backlog-works-in-linux.html)

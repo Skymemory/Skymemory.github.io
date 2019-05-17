@@ -100,3 +100,52 @@ tags:
 - *-s p:s*：可用于指定查看协议及状态，比如查看监听套接字*lsof -itcp -stcp:listen -nP*
 - `-i [46][protocol][@hostname|hostaddr][:service|port]`:用于查看网络套接字，如本机*8888*端口占用情况 *lsof -i:8888*
 
+---
+
+#### netstat
+
+netstat，用于列出系统上所有的网络套接字连接情况，常用选项：
+
+- *-a*：列出监听、非监听套接字
+- *-t*或*-u*：列出*TCP*或*UDP*相关协议
+- *-n*：禁用域名解析
+- *-l*：列出监听套接字
+- *-p*：显示进程相关信息
+- *-s*：打印网络统计数据
+
+---
+
+#### ss
+
+ss(socket statistics)，用于查看套接字信息，选项格式：
+
+```shell
+$ ss [ OPTIONS ] [ STATE-FILTER ] [ ADDRESS-FILTER ]
+```
+
+查看*established*状态*tcp*连接：
+
+```shell
+$ ss -t4 state established
+Recv-Q Send-Q         Local Address:Port             Peer Address:Port   
+0      0                192.168.1.2:54436          165.193.246.23:https   
+0      0                192.168.1.2:43386          173.194.72.125:xmpp-client 
+0      0                192.168.1.2:38355           199.59.150.46:https   
+0      0                192.168.1.2:56198          108.160.162.37:http
+```
+
+查看目的端为*http*或*https*连接:
+
+```shell
+$ ss -nt dst :443 or dst :80
+```
+
+指定端口过滤:
+
+```shell
+$ ss -at 'dport = :ssh or sport = :ssh'
+State      Recv-Q Send-Q    Local Address:Port        Peer Address:Port   
+LISTEN     0      128                   *:ssh                    *:*       
+LISTEN     0      128                  :::ssh                   :::*
+```
+
