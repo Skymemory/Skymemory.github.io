@@ -4,8 +4,7 @@ title:      "关于RESTful API的一些理解"
 date:       2018-09-22 00:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-09-22-01-bg.jpg"
-tags:
-    - RESTful
+tags: HTTP
 ---
 
 ## 前言
@@ -125,7 +124,7 @@ DELETE /zoos/ID：删除某个动物园
 | :------: | :------: |
 | X-RateLimit-Limit	| 每小时允许的最大访问次数(时间窗口可自行设置) |
 | X-RateLimit-Remaining	| 当前频率限制窗口所剩的次数 |
-| X-RateLimit-Reset	| 距离当前频率限制窗口重置的秒数(UTC epoch seconds) | 
+| X-RateLimit-Reset	| 距离当前频率限制窗口重置的秒数(UTC epoch seconds) |
 
 关于[Github V3](https://developer.github.com/v3/)采用的限流控制信息与此一致，直观感受下：
 ```

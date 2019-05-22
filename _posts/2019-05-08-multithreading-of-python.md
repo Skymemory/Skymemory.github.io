@@ -4,7 +4,7 @@ title:      "Python之多线程编程"
 date:       2019-05-08 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-05-08-01-bg.jpg"
-tags: Python Concurrence Thread
+tags: Python Concurrence
 usemathjax: true
 
 ---

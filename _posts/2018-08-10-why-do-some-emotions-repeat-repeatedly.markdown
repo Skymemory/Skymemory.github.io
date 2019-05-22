@@ -4,8 +4,8 @@ title:      "为什么一些情绪反复无常"
 date:       2018-08-10 12:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/post-bg-2018-08-10.jpg"
-tags:
-    - 生活
+tags: Note Life
+
 ---
 
 ## 前言

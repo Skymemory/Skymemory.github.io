@@ -5,7 +5,6 @@ date:       2019-01-20 00:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-01-20-01-bg.jpeg"
 tags:
-    - logging
     - Python
 
 

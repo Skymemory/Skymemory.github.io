@@ -4,9 +4,7 @@ title:      "itertools基本使用"
 date:       2018-08-11 23:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/post-bg-2018-08-11.jpg"
-tags:
-    - Python
-    - 标准库
+tags: Python
 ---
 
 itertools算得上是Python中比较常用的一个模块，它主要提供了操作在可迭代对象上的一些实用函数，这篇文章主要介绍这些函数的基本等价实现与一些使用心得.(Python Version:3.6.3)

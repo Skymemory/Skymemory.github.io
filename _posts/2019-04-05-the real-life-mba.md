@@ -4,7 +4,7 @@ title:      "《商业的本质》读后感"
 date:       2019-04-05 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-04-05-02-bg.jpg"
-tags: 生活 阅读笔记
+tags: Note Book
 
 ---
 

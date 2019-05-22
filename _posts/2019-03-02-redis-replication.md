@@ -4,7 +4,7 @@ title:      "Redis复制"
 date:       2019-03-02 08:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-03-02-01-bg.jpeg"
-tags: Redis 存储
+tags: Redis Storage
 
 
 ---

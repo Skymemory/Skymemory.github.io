@@ -6,7 +6,7 @@ author:     "Sky丶Memory"
 header-img: "img/2019-01-01-01-bg.jpeg"
 tags:
     - Django
-    - signal
+    - Python
 
 ---
 

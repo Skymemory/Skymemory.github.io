@@ -5,8 +5,7 @@ date:       2018-12-08 12:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-12-08-01-bg.jpeg"
 tags:
-    - 存储
-    - NoSQL
+    - Storage
     - MongoDB
 ---
 MongoDB是一款开源的、分布式文档型数据库产品，其提供了无结构、高性能、高可用、自动伸缩的特性吸引了不少开发者的青睐，公司里面不少项目中都有它的影子，所以打算学习学习。

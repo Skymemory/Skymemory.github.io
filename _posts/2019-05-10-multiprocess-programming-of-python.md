@@ -4,7 +4,7 @@ title:      "Python之多进程编程"
 date:       2019-05-10 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-05-10-01-bg.jpg"
-tags: Python Concurrence Process
+tags: Python Concurrence
 
 ---
 

@@ -4,7 +4,7 @@ title:      "Django登录、认证机制"
 date:       2019-03-09 17:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-03-09-01-bg.jpeg"
-tags: Django Auth
+tags: Django Python
 
 
 

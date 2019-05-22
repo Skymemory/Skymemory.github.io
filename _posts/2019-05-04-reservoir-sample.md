@@ -4,7 +4,7 @@ title:      "蓄水池采样算法"
 date:       2019-05-04 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-05-04-01-bg.jpg"
-tags: Math BigData
+tags: Math
 usemathjax: true
 
 

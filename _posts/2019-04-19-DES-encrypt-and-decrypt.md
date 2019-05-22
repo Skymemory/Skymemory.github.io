@@ -4,7 +4,7 @@ title:      "DES加密算法原理及其实现"
 date:       2019-04-19 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-04-19-01-bg.jpg"
-tags: 密码学
+tags: Cryptology
 usemathjax: true
 
 ---

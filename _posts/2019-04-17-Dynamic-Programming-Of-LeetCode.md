@@ -5,7 +5,7 @@ title:      "Dynamic Programming Of LeetCode"
 date:       2019-04-17 15:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-04-17-01-bg.jpg"
-tags: Algorithm Leetcode DP
+tags: Algorithm LeetCode DP
 usemathjax: true
 
 ---

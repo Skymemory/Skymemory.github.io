@@ -5,7 +5,7 @@ date:       2018-11-18 12:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-11-18-01-bg.jpg"
 tags:
-    - 分布式任务队列
+    - Celery
     - Python
 ---
 

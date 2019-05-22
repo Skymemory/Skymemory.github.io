@@ -4,7 +4,7 @@ title:      "MongoDB之复制集、分片"
 date:       2019-03-17 17:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-03-17-01-bg.jpg"
-tags: MongoDB 存储
+tags: MongoDB Storage
 
 
 

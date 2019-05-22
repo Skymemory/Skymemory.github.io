@@ -4,8 +4,7 @@ title:      "The Wind Rises"
 date:       2019-01-21 07:0r0:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-01-21-01-bg.jpeg"
-tags:
-    - 生活
+tags: Note Life
 
 
 

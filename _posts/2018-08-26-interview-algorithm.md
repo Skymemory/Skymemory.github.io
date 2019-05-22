@@ -4,7 +4,7 @@ title:      "那些年面过的算法题"
 date:       2018-08-26 19:30:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2018-08-26-01-bg.webp"
-tags: Algorithm 面试
+tags: Algorithm Interview
 ---
 
 #### 一

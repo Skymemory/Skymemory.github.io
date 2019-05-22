@@ -6,7 +6,6 @@ author:     "Sky丶Memory"
 header-img: "img/2018-10-27-01-bg.jpeg"
 tags:
     - Python
-    - 描述符
 ---
 
 描述符，算得上Python语言层次上面一个高级的特性，这篇文章会从三个方面介绍描述符特性:定义、触发机制、应用例子。另外，本文中所有代码均在Python 3.4下进行测试

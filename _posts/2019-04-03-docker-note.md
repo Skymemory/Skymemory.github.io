@@ -4,7 +4,7 @@ title:      "Docker学习笔记"
 date:       2019-04-03 17:00:00 +0800
 author:     "Sky丶Memory"
 header-img: "img/2019-04-03-01-bg.jpg"
-tags: Docker
+tags: Note Tech
 
 ---
 

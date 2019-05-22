@@ -7,7 +7,6 @@ header-img: "img/2018-09-08-02-bg.jpeg"
 tags:
     - Python
     - Django
-    - ORM
 ---
 
 #### 常用字段
