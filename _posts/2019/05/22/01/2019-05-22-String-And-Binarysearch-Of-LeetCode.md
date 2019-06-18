@@ -136,3 +136,38 @@ class Solution:
         return outcome
 ```
 
+---
+
+#### [Insufficient Nodes in Root to Leaf Paths](https://leetcode.com/problems/insufficient-nodes-in-root-to-leaf-paths/)
+
+```python
+def dfs(root, psum, limit):
+    if not root:
+        raise ValueError("root can't be empty.")
+    lnode, rnode = None, None
+    if root.right and root.left:
+        lnode, vl = dfs(root.left, psum + root.val, limit)
+        rnode, vr = dfs(root.right, psum + root.val, limit)
+        vmax = max(vl, vr)
+    elif root.left:
+        lnode, vl = dfs(root.left, psum + root.val, limit)
+        vmax = vl
+    elif root.right:
+        rnode, vr = dfs(root.right, psum + root.val, limit)
+        vmax = vr
+    else:
+        vmax = 0
+    root.left = lnode
+    root.right = rnode
+    if psum + root.val + vmax < limit:
+        return None, vmax + root.val
+    return root, vmax + root.val
+
+class Solution:
+    def sufficientSubset(self, root: TreeNode, limit: int) -> TreeNode:
+        r, _ = dfs(root, 0, limit)
+        return r
+```
+
+---
+
