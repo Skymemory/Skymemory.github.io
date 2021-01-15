@@ -2,8 +2,8 @@
 title: Sky丶Memory
 SEOTitle: Sky丶Memory Blog
 header-img: img/home-bg.jpeg
-email: Dream_panamera@163.com
-description: "你还记得吗，你说过要像一个诗人那样活着，不谙权欲，不醉红尘。是曰：携清风以御秋色，上九天同揽明月.而随落木归故里，齐下大荒觅自由"
+email: memorysky97@gmail.com
+description: ""
 keyword: "SkyMemory"
 url: "https://skymemory.github.io"              # your host, for absolute URL
 baseurl: ""         # for example, '/blog' if your blog hosted on 'host/blog'
@@ -24,7 +24,7 @@ RSS: false
 # from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
 highlighter: rouge
 permalink: pretty
-paginate: 10
+paginate: 20
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
 
@@ -57,30 +57,30 @@ kramdown:
 # Share component is depend on Comment so we can NOT use share only.
 #duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
-disqus_username: skymemory
+# disqus_username: skymemory
 
-netease_comment: false
+# netease_comment: false
 
 
 
 # Analytics settings
  #Baidu Analytics
-ba_track_id: 202aba3122dc4f92831309a9ca7c0716
+#ba_track_id: 202aba3122dc4f92831309a9ca7c0716
 # Google Analytics
-ga_track_id: 'UA-123706805-1'            # Format: UA-xxxxxx-xx
-ga_domain: skymemory.github.io
+#ga_track_id: 'UA-123706805-1'            # Format: UA-xxxxxx-xx
+#ga_domain: skymemory.github.io
 
 
 
 # Sidebar settings
-sidebar: true                           # whether or not using Sidebar.
+sidebar: false                           # whether or not using Sidebar.
 #sidebar-about-description: "The best way to predict future is to create it."
 sidebar-avatar: /img/avatar-hux.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
 # Featured Tags
-featured-tags: true                     # whether or not using Feature-Tags
+featured-tags: false                     # whether or not using Feature-Tags
 featured-condition-size: 1              # A tag will be featured if the size of it is more than this condition value
 
 

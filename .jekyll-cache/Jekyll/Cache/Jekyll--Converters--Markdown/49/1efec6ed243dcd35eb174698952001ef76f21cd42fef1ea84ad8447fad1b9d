@@ -1,0 +1,112 @@
+I"�><p>这是在<em>Coursera</em>学习概率论时的一个作业题目，其中有种模拟解法思路很新颖，这里简单做下记录。</p>
+
+<hr />
+
+<h4 id="问题">问题</h4>
+
+<p>巷子呈直線，長L0  = 400 m，艾波寧以v0  = 4 m/s初速等速穿越。士兵時時刻刻瞄準她；第t 秒時是否擊中她，是隨時間t 的均勻的泊松事件(Poisson process)，且與距離無關。其中，平均每μ 秒能擊中一次，μ  = 100 / ln( 50 )  約為25.5622。士兵無法擊中巷子以外的區域；另外，只要她處於巷中，μ 就是常數。 當她每被擊中一槍，速度就會減半；直到她恰中4 槍時，會當場死亡。亦即，中n槍時速度依序為4, 2, 1, 0.5 m/s ，其中n 依序為  0, 1, 2, 3。</p>
+
+<p>請問艾波寧成功捎信的機率為何?  亦即，在她處於巷子之中時，被射中低於四槍的機率為何?(用小數即可，誤差合理給對)</p>
+
+<hr />
+
+<h4 id="解法一">解法一</h4>
+
+<p>根据题意可以获知每秒被击中的概率为$ p=\frac {\ln 50} {100}$，处于不同秒是否被击中是个独立事件， 艾波寧能成功捎信的条件是中枪数小于4，所以我们可以枚举可能的中枪数，然后累加即可。</p>
+
+<p>这里以中1枪为例，假设艾波寧在第<em>t</em>秒中枪，已走的距离为$t * 4$，剩下的距离为$400 - t * 4$，艾波寧走出巷子需要的秒数为$seconds = t + \frac {(400 - 4 * t)} 2$，那么在第<em>t</em>秒中一枪成功捎信的概率为${(1-p)^{seconds-1}*p}$，通过枚举中一枪可能存在秒数就能计算出艾波寧中一枪成功捎信的概率。</p>
+
+<p>其他中枪数—0、2、3，分析过程与此类似，这里面涉及到的计算量可以通过程序解决，这里提供一种实现方式:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">math</span>
+
+
+<span class="k">def</span> <span class="nf">poisson</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">pow</span><span class="p">(</span><span class="n">math</span><span class="p">.</span><span class="n">e</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="p">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">cum</span><span class="p">,</span> <span class="n">possibility</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="p">.</span><span class="n">log</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span>
+
+    <span class="n">distance</span> <span class="o">=</span> <span class="mi">400</span>
+    <span class="n">speeds</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="c1"># unhit
+</span>    <span class="n">cum</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">possibility</span><span class="p">,</span> <span class="n">distance</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># hit one
+</span>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">distance</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">total_seconds</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">i</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">cum</span> <span class="o">+=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">possibility</span><span class="p">,</span> <span class="n">total_seconds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">possibility</span>
+
+    <span class="c1"># hit two
+</span>    <span class="k">for</span> <span class="n">first_hit_second</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">distance</span> <span class="o">/</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">left_seconds</span> <span class="o">=</span> <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">first_hit_second</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">two_hit_second</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_hit_second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">first_hit_second</span> <span class="o">+</span> <span class="n">left_seconds</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">total_seconds</span> <span class="o">=</span> <span class="n">two_hit_second</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">first_hit_second</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">two_hit_second</span> <span class="o">-</span> <span class="n">first_hit_second</span><span class="p">)</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">cum</span> <span class="o">+=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">possibility</span><span class="p">,</span> <span class="n">total_seconds</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="n">possibility</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># hit three
+</span>    <span class="k">for</span> <span class="n">first_hit_second</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">distance</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">hit_one_left_seconds</span> <span class="o">=</span> <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">first_hit_second</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">two_hit_second</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_hit_second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">first_hit_second</span> <span class="o">+</span> <span class="n">hit_one_left_seconds</span><span class="p">):</span>
+            <span class="n">hit_two_left_second</span> <span class="o">=</span> <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">first_hit_second</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">two_hit_second</span> <span class="o">-</span> <span class="n">first_hit_second</span><span class="p">)</span> <span class="o">*</span>
+                                   <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">//</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">three_hit_second</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">two_hit_second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">two_hit_second</span> <span class="o">+</span> <span class="n">hit_two_left_second</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">distance</span> <span class="o">-</span> <span class="n">first_hit_second</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">two_hit_second</span> <span class="o">-</span> <span class="n">first_hit_second</span><span class="p">)</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span>
+                            <span class="n">three_hit_second</span> <span class="o">-</span> <span class="n">two_hit_second</span><span class="p">)</span> <span class="o">*</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">speeds</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">+</span> <span class="n">three_hit_second</span>
+
+                <span class="n">cum</span> <span class="o">+=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">possibility</span><span class="p">,</span> <span class="n">seconds</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="n">possibility</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cum</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="解法二">解法二</h4>
+
+<p>第二种解法是根据大数定理得出的，通过计算机模拟多次过程，统计成功捎信所占的比例得出其概率。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+<span class="k">def</span> <span class="nf">emulate</span><span class="p">():</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">math</span><span class="p">.</span><span class="n">log</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="mi">400</span>
+    <span class="n">speed</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="k">while</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">distance</span> <span class="o">-=</span> <span class="n">speed</span>
+
+        <span class="c1"># 模拟是否中枪
+</span>        <span class="k">if</span> <span class="n">random</span><span class="p">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">speed</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">speed</span> <span class="o">/=</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="bp">True</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="mi">100000</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">emulate</span><span class="p">():</span>
+            <span class="n">success</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">success</span> <span class="o">/</span> <span class="n">times</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>最终计算出来结果为0.06</p>
+:ET

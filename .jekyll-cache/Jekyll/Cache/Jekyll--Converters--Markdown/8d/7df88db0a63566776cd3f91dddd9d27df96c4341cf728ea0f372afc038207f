@@ -1,0 +1,315 @@
+I"�k<p>现代CPU大多数都支持多核，充分利用多核计算的优势，是工程师必备的技能之一。</p>
+
+<h4 id="多线程">多线程</h4>
+
+<p>Python中多线程编程有两种使用形式（C扩展方式不在本文讨论范围内）：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="k">def</span> <span class="nf">calc_sum</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">ss</span> <span class="o">+=</span> <span class="n">i</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"sun of n is {}."</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">ss</span><span class="p">))</span>
+
+<span class="k">class</span> <span class="nc">CountDownThread</span><span class="p">(</span><span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">().</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="p">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">"Current n is {}."</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">n</span><span class="p">))</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="c1"># way1
+</span>    <span class="n">t1</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">calc_sum</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,))</span>
+    <span class="n">t1</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c1"># way2
+</span>    <span class="n">t2</span> <span class="o">=</span> <span class="n">CountDownThread</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">t2</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p><em>way2</em>方式有个缺点，任务与并发方式存在一定耦合。</p>
+
+<p>Python中线程分两类：daemon thread和non-daemon thread，其中daemon thread官方的解释：</p>
+
+<blockquote>
+
+  <p>A thread can be flagged as a “daemon thread”. The significance of this flag is that the entire Python program exits when only daemon threads are left. The initial value is inherited from the creating thread. The flag can be set through the <a href="#threading.Thread.daemon"><code class="language-plaintext highlighter-rouge">daemon</code></a> property or the <em>daemon</em> constructor argument.</p>
+
+  <p>Daemon threads are abruptly stopped at shutdown. Their resources (such as open files, database transactions, etc.) may not be released properly. If you want your threads to stop gracefully, make them non-daemonic and use a suitable signalling mechanism such as an <a href="#threading.Event"><code class="language-plaintext highlighter-rouge">Event</code></a>.</p>
+
+  <p>There is a “main thread” object; this corresponds to the initial thread of control in the Python program. It is not a daemon thread.</p>
+</blockquote>
+
+<p>大体意思就是说，daemon属性默认值继承自父线程（主线程是non-daemon thread），主线程退出时不必等待daemon thread。</p>
+
+<p>至于为什么需要daemon thread，考察这样一类任务线程：<em>GC</em>、心跳包等，这类线程只在主线程运行时才有用，运行完毕后即可终止。若没有<em>daemon thread</em>，我们需要手动的跟踪这些线程并在主线程退出时，手动的关闭它们。通过设置成<em>daemon thread</em>，当主线程退出时，这类线程就被自动终止了（猜测是解释器托管了这些线程）。</p>
+
+<p><em>stackoverflow</em>上有个关于<em>daemon thread</em>的解释<a href="https://stackoverflow.com/questions/190010/daemon-threads-explanation"><em>Daemon Threads Explanation</em></a></p>
+
+<hr />
+
+<h4 id="gil">GIL</h4>
+
+<p>从一个简单例子看起：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+<span class="k">def</span> <span class="nf">fib</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">single_thread</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+        <span class="n">tb</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">fib</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">fib</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">fib</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">te</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">r</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">'{:.5f}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">te</span> <span class="o">-</span> <span class="n">tb</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">r</span>
+
+
+<span class="k">def</span> <span class="nf">multi_thread</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">fib</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,))</span>
+            <span class="n">ts</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="n">tb</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">:</span>
+            <span class="n">t</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">:</span>
+            <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="n">te</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">r</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">'{:.5f}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">te</span> <span class="o">-</span> <span class="n">tb</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">r</span>
+
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">single_thread</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="n">multi_thread</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>在我$12$核电脑上运行结果为:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span><span class="s1">'0.84675'</span>, <span class="s1">'0.86230'</span>, <span class="s1">'0.87799'</span>, <span class="s1">'0.84974'</span>, <span class="s1">'0.85043'</span>, <span class="s1">'0.85675'</span>, <span class="s1">'0.82343'</span>, <span class="s1">'0.82434'</span>, <span class="s1">'0.83729'</span>, <span class="s1">'0.84523'</span>, <span class="s1">'0.83385'</span>, <span class="s1">'0.83480'</span>, <span class="s1">'0.82559'</span>, <span class="s1">'0.82848'</span>, <span class="s1">'0.83206'</span>, <span class="s1">'0.82472'</span>, <span class="s1">'0.82823'</span>, <span class="s1">'0.82451'</span>, <span class="s1">'0.83502'</span>, <span class="s1">'0.82901'</span><span class="o">]</span>
+<span class="o">[</span><span class="s1">'0.85296'</span>, <span class="s1">'0.87298'</span>, <span class="s1">'0.85680'</span>, <span class="s1">'0.84538'</span>, <span class="s1">'0.85485'</span>, <span class="s1">'0.84925'</span>, <span class="s1">'0.84522'</span>, <span class="s1">'0.83931'</span>, <span class="s1">'0.86896'</span>, <span class="s1">'0.86092'</span>, <span class="s1">'0.85658'</span>, <span class="s1">'0.84691'</span>, <span class="s1">'0.86612'</span>, <span class="s1">'0.85414'</span>, <span class="s1">'0.84543'</span>, <span class="s1">'0.86851'</span>, <span class="s1">'0.84650'</span>, <span class="s1">'0.85566'</span>, <span class="s1">'0.85589'</span>, <span class="s1">'0.85259'</span><span class="o">]</span>
+
+</code></pre></div></div>
+
+<p>多次运行上述脚本并观察实验结果，会得出一个事实：单线程方式大多数时候都比多线程方式快。</p>
+
+<p>是什么原因导致了这种现象？</p>
+
+<p>首先，需要了解一个基本事实，Python存在多种解释器，常见的如CPython、Jython、PyPy等，用的比较多的解释器当属<em>CPython</em>，而<em>GIL</em>就是<em>CPython</em>中存在的问题，这也间接说明了<em>GIL</em>并不是<em>Python</em>语言的特性。</p>
+
+<p><em>CPython</em>中对<em>GIL</em>官方解释:</p>
+
+<blockquote>
+  <p><em>In CPython, the global interpreter lock, or GIL, is a mutex that prevents multiple native threads from executing Python bytecodes at once. This lock is necessary mainly because CPython’s memory management is not thread-safe. (However, since the GIL exists, other features have grown to depend on the guarantees that it enforces.)</em></p>
+</blockquote>
+
+<p>从上述解释中可以得知，是由于<em>CPython</em>内存管理是非线程安全导致了<em>GIL</em>存在，<em>GIL</em>限制了同一时刻只有一个<strong><em>native thread</em></strong>能执行字节码。</p>
+
+<p>那<em>CPython</em>内存管理为什么是非线程安全，主要原因在于<em>Python</em>使用引用计数管理内存:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">sys</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">b</span> <span class="o">=</span> <span class="n">a</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">sys</span><span class="p">.</span><span class="n">getrefcount</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="mi">3</span>
+</code></pre></div></div>
+
+<p>在多线程环境下，引用计数方式会面临竞争条件，进而导致内存泄漏等其他问题，故而采用串化方式来规避了该问题。</p>
+
+<p>那是不是用<em>CPython</em>解释器的<em>Python</em>程序多线程就没有用了。</p>
+
+<p>当然不是，任务一般分为两种：<em>CPU</em>繁忙型和<em>IO</em>繁忙型，针对<em>IO</em>繁忙型，<em>Python</em>的多线程还是有一定优势，解释器在线程阻塞时会释放<em>GIL</em>以便其他线程执行。</p>
+
+<p>另外，<em>CPython</em>中也是采用时间片轮转的方式进行线程切换，其间隔时间可以通过<em>sys.getswitchinterval</em>获知。</p>
+
+<p>至此，也就能解释通为什么上述代码中多线程版本会比单线程版本慢了：申请锁、释放锁、线程切换存在一定的开销。</p>
+
+<p>通过以上分析可以得知，在以<em>CPython</em>为执行解释器的<em>Python</em>程序中，多线程编程并不适合<em>CPU</em>繁忙型任务。</p>
+
+<hr />
+
+<h4 id="rlock">RLock</h4>
+
+<p>RLock，名为可重入锁，其应用场景：一个线程获取到锁$lock_1$后、未释放$lock_1$之前又调用了需要获取$lock_1$的函数。</p>
+
+<p>遗憾的是，在工作中没有碰上过使用<em>RLock</em>的场景，这里简单和<em>Lock</em>做下对比:</p>
+
+<ul>
+  <li><em>Lock</em>对获取锁、释放锁线程没有要求，<em>RLock</em>要求释放锁线程必须是获得锁线程</li>
+</ul>
+
+<p>更确切的说，<em>RLock</em>只是<em>Lock</em>更高层的抽象，内部通过记录<em>owning thread</em>和<em>recursion level</em>即可。</p>
+
+<hr />
+
+<h4 id="condition-variable">Condition Variable</h4>
+
+<p>条件变量，可看成是一种场景模型，拿生产者、消费者模型来说，生产者向队列中放入元素时先获取到<em>lock</em>后，需判断队列是否已满，若已满，则挂起自身。这里面的是否已满就是个条件，条件变量处理的场景几乎都类似于此，后续提到的<em>Semaphore</em>、<em>Event</em>内部都是基于条件变量实现的。</p>
+
+<p>条件变量处理场景模型:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Consume one item
+</span><span class="k">with</span> <span class="n">cv</span><span class="p">:</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">an_item_is_available</span><span class="p">():</span>
+        <span class="n">cv</span><span class="p">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="n">get_an_available_item</span><span class="p">()</span>
+
+<span class="c1"># Produce one item
+</span><span class="k">with</span> <span class="n">cv</span><span class="p">:</span>
+    <span class="n">make_an_item_available</span><span class="p">()</span>
+    <span class="n">cv</span><span class="p">.</span><span class="n">notify</span><span class="p">()</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="semaphore">Semaphore</h4>
+
+<p>semaphore，名为信号量，可用于线程同步、资源访问限制，比如限制同一时刻至多有$3$个线程访问打印机：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="n">limit_sema</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Semaphore</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">printer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="n">current_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">current_thread</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">limit_sema</span><span class="p">:</span>
+        <span class="c1"># simulate time-consuming operation
+</span>        <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'{} thread print content:{}'</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">current_thread</span><span class="p">.</span><span class="n">name</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+
+
+<span class="n">ts</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">printer</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="p">))</span>
+    <span class="n">ts</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">:</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>运行输出:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Thread-1 thread print content:0
+Thread-2 thread print content:1
+Thread-3 thread print content:2
+
+Thread-4 thread print content:3
+Thread-5 thread print content:4
+Thread-6 thread print content:5
+
+Thread-7 thread print content:6
+Thread-8 thread print content:7
+Thread-9 thread print content:8
+
+Thread-10 thread print content:9
+
+</code></pre></div></div>
+
+<p>从输出中也可以发现，同一时刻至多有$3$个线程拥有打印机的执行权。</p>
+
+<hr />
+
+<h4 id="queue">Queue</h4>
+
+<p><em>queue</em>模块下提供了常见的线程安全队列，比如先进先出(<em>FIFO</em>)、后进先出(<em>LIFO</em>)、优先级队列等，不过它们基本使用方式大都类似:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">queue</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="n">broker</span> <span class="o">=</span> <span class="n">queue</span><span class="p">.</span><span class="n">Queue</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">worker</span><span class="p">():</span>
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">broker</span><span class="p">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"{}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+        <span class="n">broker</span><span class="p">.</span><span class="n">task_done</span><span class="p">()</span>
+
+<span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">multiprocessing</span><span class="p">.</span><span class="n">cpu_count</span><span class="p">()):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">worker</span><span class="p">)</span>
+    <span class="n">threads</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="c1"># simulate producer produce data
+</span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+    <span class="n">broker</span><span class="p">.</span><span class="n">put</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+<span class="c1"># block until all task are done
+</span><span class="n">broker</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+<span class="c1"># stop workers
+</span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+    <span class="n">broker</span><span class="p">.</span><span class="n">put</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="线程池">线程池</h4>
+
+<p>线程创建、销毁存在一定的开销，很多时候是通过采用线程池的方式来避免了这部分开销。标准库中同样提供了线程池供开发者使用，其接口与进程池接口一致:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">ThreadPool</span>
+
+<span class="k">def</span> <span class="nf">multiply</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>
+
+<span class="k">with</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">as</span> <span class="n">thread_pool</span><span class="p">:</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">):</span>
+            <span class="n">tasks</span><span class="p">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">thread_pool</span><span class="p">.</span><span class="n">starmap_async</span><span class="p">(</span><span class="n">multiply</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">output</span><span class="p">.</span><span class="n">get</span><span class="p">())</span>
+
+</code></pre></div></div>
+
+<hr />
+
+<h3 id="杂言">杂言</h3>
+
+<p><em>threading</em>模块中<em>Lock</em>、<em>Event</em>本文并没有提及，主要原因在于其使用方式过于简单了。</p>
+
+<h4 id="参考资料">参考资料</h4>
+
+<p><a href="https://docs.python.org/3/library/queue.html">queue</a></p>
+
+<p><a href="https://docs.python.org/3/library/threading.html#module-threading">threading</a></p>
+
+<p><a href="https://realpython.com/python-gil/">GIL</a></p>
+
+:ET

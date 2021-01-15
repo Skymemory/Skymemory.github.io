@@ -1,0 +1,163 @@
+I"fB<p>在开发中，不免会遇到一种场景：某天，某某同事向你反馈某个接口最近耗时比较久，针对此类问题，通常需要先定位慢在什么地方，只有清楚了源头，才能从本质上优化程序。</p>
+
+<p>进行性能分析的工具统称性能分析器，主要分为两类：</p>
+
+<ul>
+  <li>基于事件的性能分析(event-based profiling)</li>
+  <li>统计式的性能分析(statistical profiling)</li>
+</ul>
+
+<p>基于事件的性能分析器会记录所有的事件，而统计式的性能分析器通过抽样方式记录，故而前者往往比后者更准确。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Python</code>标准库提供了基于事件的性能分析工具<code class="language-plaintext highlighter-rouge">cProfile</code>供开发者对<code class="language-plaintext highlighter-rouge">Python</code>程序进行性能分析，本文以<code class="language-plaintext highlighter-rouge">cProfile</code>为例，简述性能分析的常见路子。</p>
+
+<h4 id="性能分析">性能分析</h4>
+
+<p>引用官方文档上的例子：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">cProfile</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="n">cProfile</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="s">'re.compile("foo|bar")'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>程序输出格式如下：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">197</span><span class="w"> </span><span class="kr">function</span><span class="w"> </span><span class="nf">calls</span><span class="w"> </span><span class="p">(</span><span class="mi">192</span><span class="w"> </span><span class="n">primitive</span><span class="w"> </span><span class="nx">calls</span><span class="p">)</span><span class="w"> </span><span class="kr">in</span><span class="w"> </span><span class="mf">0.002</span><span class="w"> </span><span class="n">seconds</span><span class="w">
+
+</span><span class="n">Ordered</span><span class="w"> </span><span class="nx">by:</span><span class="w"> </span><span class="nx">standard</span><span class="w"> </span><span class="nx">name</span><span class="w">
+
+</span><span class="n">ncalls</span><span class="w">  </span><span class="nx">tottime</span><span class="w">  </span><span class="nx">percall</span><span class="w">  </span><span class="nx">cumtime</span><span class="w">  </span><span class="nx">percall</span><span class="w"> </span><span class="nx">filename:lineno</span><span class="p">(</span><span class="kr">function</span><span class="p">)</span><span class="w">
+     </span><span class="mi">1</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.001</span><span class="w">    </span><span class="mf">0.001</span><span class="w"> </span><span class="err">&lt;</span><span class="n">string</span><span class="err">&gt;</span><span class="p">:</span><span class="nx">1</span><span class="p">(</span><span class="err">&lt;</span><span class="kr">module</span><span class="err">&gt;</span><span class="p">)</span><span class="w">
+     </span><span class="mi">1</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.001</span><span class="w">    </span><span class="mf">0.001</span><span class="w"> </span><span class="n">re.py:212</span><span class="p">(</span><span class="n">compile</span><span class="p">)</span><span class="w">
+     </span><span class="mi">1</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.001</span><span class="w">    </span><span class="mf">0.001</span><span class="w"> </span><span class="n">re.py:268</span><span class="p">(</span><span class="err">_</span><span class="n">compile</span><span class="p">)</span><span class="w">
+     </span><span class="mi">1</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w"> </span><span class="n">sre_compile.py:172</span><span class="p">(</span><span class="err">_</span><span class="n">compile_charset</span><span class="p">)</span><span class="w">
+     </span><span class="mi">1</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w"> </span><span class="n">sre_compile.py:201</span><span class="p">(</span><span class="err">_</span><span class="n">optimize_charset</span><span class="p">)</span><span class="w">
+     </span><span class="mi">4</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w">    </span><span class="mf">0.000</span><span class="w"> </span><span class="n">sre_compile.py:25</span><span class="p">(</span><span class="err">_</span><span class="n">identityfunction</span><span class="p">)</span><span class="w">
+   </span><span class="mi">3</span><span class="n">/1</span><span class="w">    </span><span class="nx">0.000</span><span class="w">    </span><span class="nx">0.000</span><span class="w">    </span><span class="nx">0.000</span><span class="w">    </span><span class="nx">0.000</span><span class="w"> </span><span class="nx">sre_compile.py:33</span><span class="p">(</span><span class="err">_</span><span class="n">compile</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+
+<p>从输出中可看出，总共有197次函数调用，其中192次原生调用（即不涉及递归调用），调用耗时0.002s。</p>
+
+<p>各个指标说明：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">ncalls</code>: 格式为<code class="language-plaintext highlighter-rouge">a/b</code>，其中<code class="language-plaintext highlighter-rouge">a</code>为总共调用次数，<code class="language-plaintext highlighter-rouge">b</code>为原生调用次数，大多数情况下，<code class="language-plaintext highlighter-rouge">a</code>与<code class="language-plaintext highlighter-rouge">b</code>相等，故而简写</li>
+  <li><code class="language-plaintext highlighter-rouge">tottime</code>:函数调用时间（不包含子函数调用时间）</li>
+  <li><code class="language-plaintext highlighter-rouge">percall</code>: <code class="language-plaintext highlighter-rouge">tottime</code>除以 <code class="language-plaintext highlighter-rouge">ncalls</code></li>
+  <li><code class="language-plaintext highlighter-rouge">cumtime</code>: 函数调用时间（包含子函数调用时间）</li>
+  <li><code class="language-plaintext highlighter-rouge">percall</code>:<code class="language-plaintext highlighter-rouge">cumtime</code>除以原生调用次数</li>
+</ul>
+
+<p>另外，从最后一列中也可看出，<code class="language-plaintext highlighter-rouge">cProfile</code>的最小统计粒度为函数。</p>
+
+<h4 id="简单使用">简单使用</h4>
+
+<p>Python中进行性能分析会涉及<code class="language-plaintext highlighter-rouge">cProfile</code>模块中的<code class="language-plaintext highlighter-rouge">Profile</code>类和<code class="language-plaintext highlighter-rouge">pstats</code>模块中的<code class="language-plaintext highlighter-rouge">Stats</code>类，前者收集数据，后者对收集数据进行加工。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Profile</code>常用接口：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">enable()</code>:开始收集性能分析数据</li>
+  <li><code class="language-plaintext highlighter-rouge">disable()</code>:停止收集性能分析数据</li>
+  <li><code class="language-plaintext highlighter-rouge">create_stats()</code>:停止收集性能分析数据并内部记录结果</li>
+  <li><code class="language-plaintext highlighter-rouge">dump_stats</code>(<em>filename</em>)：当前结果写入指定文件</li>
+  <li><code class="language-plaintext highlighter-rouge">runcall(func, *args, **kwargs)</code>: Profile <code class="language-plaintext highlighter-rouge">func(*args, **kwargs) </code></li>
+</ul>
+
+<p>比如将收集性能分析数据写入文件：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">cProfile</span>
+
+
+<span class="k">def</span> <span class="nf">fib</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="n">pr</span> <span class="o">=</span> <span class="n">cProfile</span><span class="p">.</span><span class="n">Profile</span><span class="p">()</span>
+<span class="n">pr</span><span class="p">.</span><span class="n">runcall</span><span class="p">(</span><span class="n">fib</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<span class="n">pr</span><span class="p">.</span><span class="n">dump_stats</span><span class="p">(</span><span class="s">'fib.pstat'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>数据源已经有了，还需要对数据源进行进一步加工，这便是<code class="language-plaintext highlighter-rouge">Stats</code>类做的事情，<code class="language-plaintext highlighter-rouge">Stats</code>类常见接口：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">dump_stats(filename)</code>: 当前结果写入文件</li>
+  <li><code class="language-plaintext highlighter-rouge">print_stats(*restrictions)</code>:输出当前结果</li>
+  <li><code class="language-plaintext highlighter-rouge">sort_stats(*keys)</code>:指定排序列</li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">Stats(*filenames or profile, stream=sys.stdout)</code>支持文件名或<code class="language-plaintext highlighter-rouge">profile</code>对象为入参，并可通过指定<code class="language-plaintext highlighter-rouge">stream</code>参数来更改<code class="language-plaintext highlighter-rouge">print_XXX</code>函数输出流，例将输出流更换为<code class="language-plaintext highlighter-rouge">BytesIO</code>:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">cProfile</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">pstats</span>
+
+
+<span class="k">def</span> <span class="nf">fib</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="n">pr</span> <span class="o">=</span> <span class="n">cProfile</span><span class="p">.</span><span class="n">Profile</span><span class="p">()</span>
+<span class="n">pr</span><span class="p">.</span><span class="n">runcall</span><span class="p">(</span><span class="n">fib</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+
+<span class="n">stream</span> <span class="o">=</span> <span class="n">io</span><span class="p">.</span><span class="n">BytesIO</span><span class="p">()</span>
+<span class="n">ps</span> <span class="o">=</span> <span class="n">pstats</span><span class="p">.</span><span class="n">Stats</span><span class="p">(</span><span class="n">pr</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
+<span class="n">ps</span><span class="p">.</span><span class="n">print_stats</span><span class="p">()</span>
+
+<span class="k">print</span> <span class="s">"BytesIO content is:"</span>
+<span class="k">print</span> <span class="n">stream</span><span class="p">.</span><span class="n">getvalue</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h4 id="可视化">可视化</h4>
+
+<p>虽然我们可以通过在命令行查看函数调用关系及耗时，不过始终感觉还是没有可视化工具方便（看个人喜好）。</p>
+
+<p>平时以<code class="language-plaintext highlighter-rouge">PyCharm</code>为开发工具，而<code class="language-plaintext highlighter-rouge">PyCharm</code>中刚好又内置了<code class="language-plaintext highlighter-rouge">cProfile</code>可视化工具，编写如下程序：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">cProfile</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+<span class="k">def</span> <span class="nf">fib</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">delay</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">say</span><span class="p">():</span>
+    <span class="k">print</span> <span class="s">"Welcome to test visual tool."</span>
+
+
+<span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="n">fib</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="n">delay</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">say</span><span class="p">()</span>
+
+
+<span class="n">pr</span> <span class="o">=</span> <span class="n">cProfile</span><span class="p">.</span><span class="n">Profile</span><span class="p">()</span>
+<span class="n">pr</span><span class="p">.</span><span class="n">runcall</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+<span class="n">pr</span><span class="p">.</span><span class="n">dump_stats</span><span class="p">(</span><span class="s">'demo.pstat'</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>在<code class="language-plaintext highlighter-rouge">PyCharm</code>菜单栏中选择<code class="language-plaintext highlighter-rouge">Tools</code>下的<code class="language-plaintext highlighter-rouge">Open CProfile snapshot</code>，打开当前目录下<code class="language-plaintext highlighter-rouge">demo.pstat</code>文件，得到如下图：</p>
+
+<p><img src="/img/2019/04/01/01/01.png" alt="" /></p>
+
+<h4 id="参考资料">参考资料</h4>
+
+<p><a href="https://zhuanlan.zhihu.com/p/24495603">Python优化第一步：性能分析实践</a></p>
+
+<p><a href="https://docs.python.org/3/library/profile.html">The Python Profilers</a></p>
+
+<p><a href="https://www.jetbrains.com/help/pycharm/profiler.html">Optimizing Your Code Using Profilers</a></p>
+
+:ET

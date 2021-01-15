@@ -1,0 +1,86 @@
+I"i<h4 id="top">top</h4>
+
+<p><em>top</em>命令用于实时查看进程信息，在交互式窗口下<em>top</em>支持不少的选项。这里说的选项指的是在交互式环境下输入对应的字母。</p>
+
+<p>排序选项:</p>
+
+<ul>
+  <li><em>P</em>：<em>CPU</em>使用率排序</li>
+  <li><em>M</em>：内存使用率排序</li>
+  <li><em>T</em>：<em>CPU</em>占用时间排序</li>
+</ul>
+
+<p>交互选项：</p>
+
+<ul>
+  <li><em>z</em>：单色与多色之间切换</li>
+  <li><em>b</em>：粗体展示</li>
+  <li><em>x</em>：高亮排序列</li>
+  <li><em>y</em>：高亮运行任务</li>
+</ul>
+
+<p>过滤选项：</p>
+
+<ul>
+  <li><em>u</em>：指定用户进程</li>
+  <li><em>o</em>或<em>O</em>：指定过滤条件</li>
+  <li><em>L</em>：搜索指定文本</li>
+</ul>
+
+<p>其他常用选项：</p>
+
+<ul>
+  <li><em>L</em>：显示对应的线程</li>
+  <li><em>k</em>：发送<em>SIGTERM</em>信号给指定进程</li>
+  <li><em>d</em>：调整刷新频率</li>
+  <li><em>c</em>：显示完整命令</li>
+</ul>
+
+<hr />
+
+<h4 id="netstat">netstat</h4>
+
+<p>netstat，用于列出系统上所有的网络套接字连接情况，常用选项：</p>
+
+<ul>
+  <li><em>-a</em>：列出监听、非监听套接字</li>
+  <li><em>-t</em>或<em>-u</em>：列出<em>TCP</em>或<em>UDP</em>相关协议</li>
+  <li><em>-n</em>：禁用域名解析</li>
+  <li><em>-l</em>：列出监听套接字</li>
+  <li><em>-p</em>：显示进程相关信息</li>
+  <li><em>-s</em>：打印网络统计数据</li>
+</ul>
+
+<hr />
+
+<h4 id="ss">ss</h4>
+
+<p>ss(socket statistics)，用于查看套接字信息，选项格式：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ss <span class="o">[</span> OPTIONS <span class="o">]</span> <span class="o">[</span> STATE-FILTER <span class="o">]</span> <span class="o">[</span> ADDRESS-FILTER <span class="o">]</span>
+</code></pre></div></div>
+
+<p>查看<em>established</em>状态<em>tcp</em>连接：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ss <span class="nt">-t4</span> state established
+Recv-Q Send-Q         Local Address:Port             Peer Address:Port   
+0      0                192.168.1.2:54436          165.193.246.23:https   
+0      0                192.168.1.2:43386          173.194.72.125:xmpp-client 
+0      0                192.168.1.2:38355           199.59.150.46:https   
+0      0                192.168.1.2:56198          108.160.162.37:http
+</code></pre></div></div>
+
+<p>查看目的端为<em>http</em>或<em>https</em>连接:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ss <span class="nt">-nt</span> dst :443 or dst :80
+</code></pre></div></div>
+
+<p>指定端口过滤:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ss <span class="nt">-at</span> <span class="s1">'dport = :ssh or sport = :ssh'</span>
+State      Recv-Q Send-Q    Local Address:Port        Peer Address:Port   
+LISTEN     0      128                   <span class="k">*</span>:ssh                    <span class="k">*</span>:<span class="k">*</span>       
+LISTEN     0      128                  :::ssh                   :::<span class="k">*</span>
+</code></pre></div></div>
+
+:ET

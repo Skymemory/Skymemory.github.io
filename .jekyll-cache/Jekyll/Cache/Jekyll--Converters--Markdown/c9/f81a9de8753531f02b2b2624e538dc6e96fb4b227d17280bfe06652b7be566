@@ -1,0 +1,41 @@
+I"v<h4 id="时区">时区</h4>
+
+<p>平常开发中，接触时区、时间格式还是比较常见的，这里简单整理下：</p>
+
+<p>UTC（<strong>C</strong>oordinated <strong>U</strong>niversal <strong>T</strong>ime）: 世界协调时间时</p>
+
+<p>CST（<strong>C</strong>hina <strong>S</strong>tandard <strong>T</strong>ime）:中国标准时间</p>
+
+<p>ISO时间格式为<strong>YYYY-MM-DDThh:mm:ss.sTZD</strong>，例如：1997-07-16T19:20:30.45+01:00，ISO时间格式中若带有Z，则表示UTC时间，带+hh:mm或-hh:mm表示时区偏移，为本地化时间，本地化时间减去时区偏移即可得UTC时间</p>
+
+<p>时间一般不携带时区信息，所以需要将时间本地化，以Python为例：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># -*- coding: utf-8 -*-
+</span><span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="n">TIMEZONE</span> <span class="o">=</span> <span class="s">'Asia/Shanghai'</span>
+
+<span class="c1"># 本地化时间
+</span><span class="n">local</span> <span class="o">=</span> <span class="n">pytz</span><span class="p">.</span><span class="n">timezone</span><span class="p">(</span><span class="n">TIMEZONE</span><span class="p">).</span><span class="n">localize</span><span class="p">(</span><span class="n">datetime</span><span class="p">.</span><span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">())</span>
+
+<span class="k">print</span><span class="p">(</span><span class="n">local</span><span class="p">)</span>
+
+<span class="c1"># 不同时区转换
+</span><span class="n">other</span> <span class="o">=</span> <span class="n">local</span><span class="p">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">pytz</span><span class="p">.</span><span class="n">utc</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+<span class="c1"># 国家对应时区名称
+</span><span class="k">print</span><span class="p">(</span><span class="n">pytz</span><span class="p">.</span><span class="n">country_timezones</span><span class="p">)</span>
+
+<span class="c1"># 时间戳转对应时区
+</span><span class="n">ts</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">.</span><span class="n">datetime</span><span class="p">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">pytz</span><span class="p">.</span><span class="n">timezone</span><span class="p">(</span><span class="n">TIMEZONE</span><span class="p">))</span>
+
+</code></pre></div></div>
+
+<p>在Python中，不带时区信息的时间称为<strong>naive time</strong>，带时区信息的时间称为<strong>aware time</strong>。</p>
+:ET

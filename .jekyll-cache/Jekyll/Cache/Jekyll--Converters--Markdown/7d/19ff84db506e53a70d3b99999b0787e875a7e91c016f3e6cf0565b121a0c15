@@ -1,0 +1,73 @@
+I"
+<p>蓄水池采样算法主要用于解决一类问题：输入样本空间未知的情况下，抽取$k$个样本，使得每个样本被选中的概率相同。</p>
+
+<p>算法步骤，针对第$n$个样本$X_n$：</p>
+
+<ul>
+  <li>$ n &lt;= k $：$X_n$直接放入池中</li>
+  <li>$n &gt; k$：以$\frac k n$的概率选中样本$X_n$，若选中，则从池中随机选取样本$X_i$，用$X_n$替换$X_i$</li>
+</ul>
+
+<h4 id="证明">证明</h4>
+
+<p>首先，考察第$j(j &gt; k)$个样本$X_j$，$P(被X_j替换)=\frac k j * \frac 1 k=\frac1j$，故而得出</p>
+
+\[P(不被X_j替换) = 1 - P(被X_j替换) = \frac {j-1}j\]
+
+<p>求每个样本被选中的概率分两种情况：</p>
+
+<ol>
+  <li>
+    <p>第$i(i \leq k)$个样本$X_i$被选中的概率</p>
+
+\[P(X_i被选中)=P(不被X_{k+1}替换) * P(不被X_{k+2}替换)…*P(不被X_n替换)=\frac k{k+1}*\frac{k+1}{k+2}…* \frac {n-1}{n}=\frac kn\]
+  </li>
+  <li>
+    <p>第$i(i &gt; k)$个样本$X_i$被选中的概率</p>
+
+\[P(X_i被选中) = \frac k i * P(不被X_{i+1}替换) * P(不被X_{i+2}替换)… * P(不被X_n替换)=\frac k i * \frac i {i+1} * \frac {i+1}{i+2}…\frac {n-1}n=\frac k n\]
+  </li>
+</ol>
+
+<p>根据上述的证明可以发现，最终每个样本被选中的概率都为$\frac kn$。</p>
+
+<hr />
+
+<h4 id="实现">实现</h4>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+
+
+<span class="k">def</span> <span class="nf">reservoir_sample</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+    <span class="n">pool</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="n">k</span><span class="p">:</span>
+            <span class="n">pool</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">rr</span> <span class="o">=</span> <span class="n">random</span><span class="p">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rr</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">:</span>
+                <span class="n">pool</span><span class="p">[</span><span class="n">rr</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+    <span class="k">return</span> <span class="n">pool</span>
+
+
+<span class="k">class</span> <span class="nc">TestMain</span><span class="p">(</span><span class="n">unittest</span><span class="p">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">test_reservoir_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100000</span><span class="p">):</span>
+            <span class="n">outcome</span> <span class="o">=</span> <span class="n">reservoir_sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">stat</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">outcome</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">stat</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="p">.</span><span class="n">main</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>根据概率的统计定义，重复实验的次数越来越多时，得出的概率模型和已知概率模型应当具有一致性。上述代码中，通过$10$万次的蓄水池采样，可以发现不同数字出现的次数都在3万左右，从一定意义上也验证了蓄水池采样算法的正确性。</p>
+:ET

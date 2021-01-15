@@ -1,0 +1,150 @@
+I"#=<h4 id="背景">背景</h4>
+
+<p>在实际项目中，一个业务系统往往依赖多个微服务，各个微服务又或多或少的进行了水平扩展来避免单点问题，这样带来的一个问题就在于：问题的排查变得困难，不同服务之间的调用很难关联上。故而引出了全链路跟踪系统，旨在解决链路调用问题，比如美团MTrace、阿里EagleEye、Zipkin等。</p>
+
+<p>本文并不打算介绍全链路跟踪系统的设计，只是提供一个问题的解决思路：如何在业务方无感知的情况下，让业务日志关联跟踪上下文</p>
+
+<hr />
+
+<h4 id="思路">思路</h4>
+
+<p>logging是Python标准库提供给开发者记录日志的模块，其处理流程图大概如下所示:</p>
+
+<p><img src="/img/2019/01/20/01/01.png" alt="" /></p>
+
+<p>Logger、Handler都有自己对应的日志级别、日志过滤器，这种设计的好处就在于：Logger可以做粗粒度的过滤、Handler做细粒度的过滤。</p>
+
+<p>关于Filter是通过方法addFilter添加到当前Logger或Handler中，但我们可以定制化自己想要的Filter，只用实现其需要的接口即可</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="s">"""
+    Filter instances are used to perform arbitrary filtering of LogRecords.
+
+    Loggers and Handlers can optionally use Filter instances to filter
+    records as desired. The base filter class only allows events which are
+    below a certain point in the logger hierarchy. For example, a filter
+    initialized with "A.B" will allow events logged by loggers "A.B",
+    "A.B.C", "A.B.C.D", "A.B.D" etc. but not "A.BB", "B.A.B" etc. If
+    initialized with the empty string, all events are passed.
+    """</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">''</span><span class="p">):</span>
+        <span class="s">"""
+        Initialize a filter.
+
+        Initialize with the name of the logger which, together with its
+        children, will have its events allowed through the filter. If no
+        name is specified, allow every event.
+        """</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">nlen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="s">"""
+        Determine if the specified record is to be logged.
+
+        Is the specified record to be logged? Returns 0 for no, nonzero for
+        yes. If deemed appropriate, the record may be modified in-place.
+        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">nlen</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="p">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">record</span><span class="p">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">record</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">nlen</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">name</span><span class="p">[</span><span class="bp">self</span><span class="p">.</span><span class="n">nlen</span><span class="p">]</span> <span class="o">==</span> <span class="s">"."</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Filter对外提供的接口仅需要一个，也就是上述代码中的filter方法，所以我们可以通过Filter注入全链路跟踪信息</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+
+<span class="k">class</span> <span class="nc">TraceManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">_trace_ctx</span> <span class="o">=</span> <span class="n">threading</span><span class="p">.</span><span class="n">local</span><span class="p">()</span>
+
+    <span class="o">@</span><span class="nb">classmethod</span>
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">cls</span><span class="p">.</span><span class="n">_trace_ctx</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span><span class="p">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">'_'</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="nb">KeyError</span><span class="p">(</span><span class="s">"kwargs can't startswith _"</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="o">@</span><span class="nb">classmethod</span>
+    <span class="k">def</span> <span class="nf">unset</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">attrs</span><span class="p">):</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">cls</span><span class="p">.</span><span class="n">_trace_ctx</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">attr</span><span class="p">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">'_'</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"attr can't startswith _"</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">except</span> <span class="nb">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="o">@</span><span class="nb">classmethod</span>
+    <span class="k">def</span> <span class="nf">all</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">cls</span><span class="p">.</span><span class="n">_trace_ctx</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="p">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">'_'</span><span class="p">),</span> <span class="nb">dir</span><span class="p">(</span><span class="n">ctx</span><span class="p">))</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">dt</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">'TraceCtx'</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)(</span><span class="o">**</span><span class="n">dt</span><span class="p">)</span>
+
+    <span class="o">@</span><span class="nb">classmethod</span>
+    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">cls</span><span class="p">.</span><span class="n">_trace_ctx</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="p">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">'_'</span><span class="p">),</span> <span class="nb">dir</span><span class="p">(</span><span class="n">ctx</span><span class="p">))</span>
+        <span class="n">cls</span><span class="p">.</span><span class="n">unset</span><span class="p">(</span><span class="o">*</span><span class="n">attrs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TraceFilter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="n">ctx</span> <span class="o">=</span> <span class="n">TraceManager</span><span class="p">.</span><span class="nb">all</span><span class="p">()</span>
+        <span class="n">record</span><span class="p">.</span><span class="n">trace_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="s">'trace_id'</span><span class="p">,</span> <span class="s">'-'</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="p">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">'test'</span><span class="p">)</span>
+<span class="n">logger</span><span class="p">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="p">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="p">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s">'trace_id=%(trace_id)s level=%(levelname)s message=%(message)s'</span><span class="p">)</span>
+<span class="n">handler</span> <span class="o">=</span> <span class="n">logging</span><span class="p">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+<span class="n">handler</span><span class="p">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="p">.</span><span class="n">DEBUG</span><span class="p">)</span>
+<span class="n">handler</span><span class="p">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
+
+<span class="n">logger</span><span class="p">.</span><span class="n">addFilter</span><span class="p">(</span><span class="n">TraceFilter</span><span class="p">())</span>
+<span class="n">logger</span><span class="p">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+
+<span class="n">TraceManager</span><span class="p">.</span><span class="nb">set</span><span class="p">(</span><span class="n">trace_id</span><span class="o">=</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid1</span><span class="p">())</span>
+
+<span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">'Is ok?'</span><span class="p">)</span>
+<span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">"yeah, look fine."</span><span class="p">)</span>
+
+<span class="n">TraceManager</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>终端运行脚本文件，输出如下：</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜ python demo.py
+<span class="nv">trace_id</span><span class="o">=</span>18149b9e-1c56-11e9-bbe2-f218987397c7 <span class="nv">level</span><span class="o">=</span>INFO <span class="nv">message</span><span class="o">=</span>Is ok?
+<span class="nv">trace_id</span><span class="o">=</span>18149b9e-1c56-11e9-bbe2-f218987397c7 <span class="nv">level</span><span class="o">=</span>DEBUG <span class="nv">message</span><span class="o">=</span>yeah, look fine.
+</code></pre></div></div>
+
+<p>由此可见，这种方式是可行的，只是从设计的角度来说，并不雅观，因为Filter的功能只是做过滤，也就是单纯的读操作，这里已经变成了写操作。</p>
+
+<p>这里再聊聊跟踪上下文的注入——TraceManager的set方法什么时候调用</p>
+
+<p>一个系统内的流量来源，我理解的分三类：同步调用、异步调用、定时任务</p>
+
+<ul>
+  <li>同步调用：大多数服务之间的调用都属于应用层协议，比如常见的http，在接收到请求后、处理前注入当前请求的上下文即可</li>
+  <li>异步调用：异步调用往往会伴随一个id，类似Celery中task_id、MNS中msg_id，一种想法就是让异步调用的id和traceId保持一致</li>
+  <li>定时任务：id分配规则与traceId一直即可</li>
+</ul>
+
+:ET

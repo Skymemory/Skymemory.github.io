@@ -1,0 +1,395 @@
+I"{z<h4 id="常用字段">常用字段</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">ORM</th>
+      <th style="text-align: center">Database(以Mysql为例)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">SmallIntegerField</td>
+      <td style="text-align: center">smallint</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">IntegerField</td>
+      <td style="text-align: center">integer</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">PositiveIntegerField</td>
+      <td style="text-align: center">integer UNSIGNED</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">PositiveSmallIntegerField</td>
+      <td style="text-align: center">smallint UNSIGNED</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">TextField</td>
+      <td style="text-align: center">longtext</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">BinaryField</td>
+      <td style="text-align: center">longblob</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">CharField</td>
+      <td style="text-align: center">varchar(%(max_length)s)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">DateField</td>
+      <td style="text-align: center">date</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">DateTimeField</td>
+      <td style="text-align: center">datetime</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">UUIDField</td>
+      <td style="text-align: center">char(32)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">OneToOneField</td>
+      <td style="text-align: center">integer</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Django同样对字段提供一些操作选项，这里顺便罗列一些常见选项:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">字段选项</th>
+      <th style="text-align: center">说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">null</td>
+      <td style="text-align: center">默认false,表明字段不可为空</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">choices</td>
+      <td style="text-align: center">可迭代对象,如:[(val1, desc1),(val2, desc2)],数据库存储对应的val值</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">db_index</td>
+      <td style="text-align: center">true或false,字段是否需要建索引</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">default</td>
+      <td style="text-align: center">值或可调用对象</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">unique</td>
+      <td style="text-align: center">唯一索引</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">verbose_name</td>
+      <td style="text-align: center">说明文字</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">max_length</td>
+      <td style="text-align: center">字符字段所占用的最大长度</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">auto_now_add</td>
+      <td style="text-align: center">第一次创建对象时，ORM会自动设置该字段值</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">auto_now</td>
+      <td style="text-align: center">调用save方法，ORM会自动赋值当前时间，其他情况如:QuerySet.update不会自动更新该值</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>针对choices选项的字段，Django默认提供了get_filedname_display()方法将值转换为其描述文字。</p>
+
+<p>关系型字段选项说明:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">字段选项</th>
+      <th style="text-align: center">说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">db_constraint</td>
+      <td style="text-align: center">外键约束控制</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">related_name</td>
+      <td style="text-align: center">反向关联名称，默认为model_name_set</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">related_query_name</td>
+      <td style="text-align: center">反向关联查询名称，默认为model_name</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>关系型字段选项中的to关键参数支持惰性关系，格式为:model_name或app_label.model_name</p>
+
+<p>Model Meta常见选项:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span>
+
+
+<span class="k">class</span> <span class="nc">Customer</span><span class="p">(</span><span class="n">models</span><span class="p">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">first_name</span> <span class="o">=</span> <span class="n">models</span><span class="p">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">last_name</span> <span class="o">=</span> <span class="n">models</span><span class="p">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">abstract</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="n">app_label</span> <span class="o">=</span> <span class="s">'api'</span>
+        
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">models</span><span class="p">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">'last_name'</span><span class="p">,</span> <span class="s">'first_name'</span><span class="p">]),</span>
+            <span class="n">models</span><span class="p">.</span><span class="n">Index</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">'first_name'</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s">'first_name_idx'</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">unique_together</span> <span class="o">=</span> <span class="p">((</span><span class="s">'first_name'</span><span class="p">,</span> <span class="s">'last_name'</span><span class="p">),)</span>
+
+</code></pre></div></div>
+<p>这里简单说下个人看法，Django中可通过字段选项、Meta选项两种方式创建索引(前者不能建联合索引)，不过更建议通过Meta选项指定，好处在我看来有两个:</p>
+
+<ul>
+  <li>索引定义与字段定义分离，语意明确</li>
+  <li>便于了解是否存在冗余的索引</li>
+</ul>
+
+<hr />
+
+<h4 id="crud">CRUD</h4>
+
+<h5 id="插入">插入</h5>
+
+<p>Django支持单条、批量数据插入方式，这里简要说明下批量插入方式例子:</p>
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="n">Entry</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">bulk_create</span><span class="p">([</span>
+<span class="p">...</span>     <span class="n">Entry</span><span class="p">(</span><span class="n">headline</span><span class="o">=</span><span class="s">'This is a test'</span><span class="p">),</span>
+<span class="p">...</span>     <span class="n">Entry</span><span class="p">(</span><span class="n">headline</span><span class="o">=</span><span class="s">'This is only a test'</span><span class="p">),</span>
+<span class="p">...</span> <span class="p">])</span>
+</code></pre></div></div>
+<p>批量插入函数原型为</p>
+
+<p><code class="language-plaintext highlighter-rouge">bulk_create(objs, batch_size=None)</code></p>
+
+<p>batch_size用于指定批量大小，比如objs中存在1000条数据，batch_size为100，则需要10次网络请求(一次100条)才能插入整个数据</p>
+
+<h5 id="更新">更新</h5>
+
+<p>更新数据一般使用Model对象提供的save方法或QuerySet.update方法，save方法在使用上有个坑，从一个简单的看起:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">o</span> <span class="o">=</span> <span class="n">FaceTaskPerf</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">o</span><span class="p">.</span><span class="n">taken_nums</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="n">o</span><span class="p">.</span><span class="n">save</span><span class="p">()</span>
+</code></pre></div></div>
+<p>本意只想将id为2的任务taken_nums加1(这里只是为了举例说明问题，有更好的方法实现)，但是ORM最终转换的sql却非如此:</p>
+<pre><code class="language-mysql">UPDATE `crm_facetaskperf` SET `username` = 'admin', `product_id` = 10, `audit_date` = '2018-12-05', `taken_nums` = 2, `done_nums` = 1, `same_nums` = 1, `unsame_nums` = 0, `created_time` = '2018-12-05 09:10:32.836373', `last_modified` = '2018-12-06 07:29:04.267796' WHERE `crm_facetaskperf`.`id` = 2
+</code></pre>
+<p>这就是save方法的默认行为，一般的使用原则:</p>
+
+<p><strong><em>对需要更新的字段，save时通过update_fields明确指定</em></strong></p>
+
+<p>比如刚才的例子我们可以通过如下方式达到预期:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">o</span> <span class="o">=</span> <span class="n">FaceTaskPerf</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">o</span><span class="p">.</span><span class="n">taken_nums</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="n">o</span><span class="p">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s">'taken_nums'</span><span class="p">])</span>
+</code></pre></div></div>
+
+<h5 id="删除">删除</h5>
+
+<p>删除数据一般通过Model对象提供的delete方法或者QuerySet.delete方法进行删除</p>
+
+<h5 id="查询">查询</h5>
+
+<p>F对象用于引用字段值，例如:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">django.db.models</span> <span class="kn">import</span> <span class="n">F</span>
+<span class="n">Credit</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">filter</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">2</span><span class="p">).</span><span class="n">update</span><span class="p">(</span><span class="n">amount</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s">'amount'</span><span class="p">)</span> <span class="o">+</span> <span class="mi">99</span><span class="p">)</span>
+
+<span class="c1"># 执行对应SQL:
+# UPDATE `api_credit` SET `amount`=(`api_credit`.`amount` + 99) WHERE `api_credit`.`id` = 2
+</span>
+</code></pre></div></div>
+
+<p>Q对象用于构建复杂查询，比如OR查询等，其实现了__or__、__and__、__invert__魔方方法，分别对应操作符&amp;、|、~，简单使用例子:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Poll</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="n">Q</span><span class="p">(</span><span class="n">question__startswith</span><span class="o">=</span><span class="s">'Who'</span><span class="p">),</span>
+    <span class="n">Q</span><span class="p">(</span><span class="n">pub_date</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="mi">2005</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">|</span> <span class="n">Q</span><span class="p">(</span><span class="n">pub_date</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="mi">2005</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="p">)</span>
+<span class="c1"># 等价于:
+</span>
+<span class="n">SELECT</span> <span class="o">*</span> <span class="k">from</span> <span class="n">polls</span> <span class="n">WHERE</span> <span class="n">question</span> <span class="n">LIKE</span> <span class="s">'Who%'</span>
+    <span class="n">AND</span> <span class="p">(</span><span class="n">pub_date</span> <span class="o">=</span> <span class="s">'2005-05-02'</span> <span class="n">OR</span> <span class="n">pub_date</span> <span class="o">=</span> <span class="s">'2005-05-06'</span><span class="p">)</span>
+</code></pre></div></div>
+<p>QuerySet对象提供的filter、get、exclude方法都支持Q对象作为其位置参数</p>
+
+<p>Django ORM同样支持聚合函数，使用方法:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">56</span><span class="p">]:</span> <span class="kn">from</span> <span class="nn">django.db.models.aggregates</span> <span class="kn">import</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">Avg</span><span class="p">,</span> <span class="n">Count</span><span class="p">,</span> <span class="n">Max</span><span class="p">,</span> <span class="n">Min</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">57</span><span class="p">]:</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">Credit</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">filter</span><span class="p">(</span><span class="n">status__in</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]).</span><span class="n">aggregate</span><span class="p">(</span><span class="nb">sum</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s">'amount'</span><span class="p">),</span> <span class="n">cnt</span><span class="o">=</span><span class="n">Count</span><span class="p">(</span><span class="s">'id'</span><span class="p">),</span> <span class="nb">max</span><span class="o">=</span><span class="n">Max</span><span class="p">(</span><span class="s">'amount'</span><span class="p">))</span>
+    <span class="p">...:</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">58</span><span class="p">]:</span> <span class="n">rs</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">58</span><span class="p">]:</span> <span class="p">{</span><span class="s">'cnt'</span><span class="p">:</span> <span class="mi">1031</span><span class="p">,</span> <span class="s">'max'</span><span class="p">:</span> <span class="mi">300100</span><span class="p">,</span> <span class="s">'sum'</span><span class="p">:</span> <span class="mi">303690289</span><span class="p">}</span>
+</code></pre></div></div>
+<p>aggregate方法使用上存在的一个小细节:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">60</span><span class="p">]:</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">Credit</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">filter</span><span class="p">(</span><span class="n">status__in</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]).</span><span class="n">aggregate</span><span class="p">(</span><span class="nb">sum</span><span class="o">=</span><span class="n">Sum</span><span class="p">(</span><span class="s">'amount'</span><span class="p">))</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">61</span><span class="p">]:</span> <span class="n">rs</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">61</span><span class="p">]:</span> <span class="p">{</span><span class="s">'sum'</span><span class="p">:</span> <span class="bp">None</span><span class="p">}</span>
+</code></pre></div></div>
+<p>QuerySet查询结果集为空，会导致sum值取值为None，需要特殊处理</p>
+
+<p>当表中字段过多或存在大字段时，可使用only、defer方法减少网络、服务进程开销</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Blog</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">only</span><span class="p">(</span><span class="s">'ctime'</span><span class="p">).</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">Entry</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">defer</span><span class="p">(</span><span class="s">"headline"</span><span class="p">,</span> <span class="s">"body"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>values_list、values方法使用例子:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">django.db.models.functions</span> <span class="kn">import</span> <span class="n">Lower</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">Entry</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="n">values_list</span><span class="p">(</span><span class="s">'id'</span><span class="p">,</span> <span class="n">Lower</span><span class="p">(</span><span class="s">'headline'</span><span class="p">))</span>
+<span class="o">&lt;</span><span class="n">QuerySet</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="s">'first entry'</span><span class="p">),</span> <span class="p">...]</span><span class="o">&gt;</span>
+
+<span class="c1"># This list contains a Blog object.
+</span><span class="o">&gt;&gt;&gt;</span> <span class="n">Blog</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">filter</span><span class="p">(</span><span class="n">name__startswith</span><span class="o">=</span><span class="s">'Beatles'</span><span class="p">)</span>
+<span class="o">&lt;</span><span class="n">QuerySet</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">Blog</span><span class="p">:</span> <span class="n">Beatles</span> <span class="n">Blog</span><span class="o">&gt;</span><span class="p">]</span><span class="o">&gt;</span>
+
+<span class="c1"># This list contains a dictionary.
+</span><span class="o">&gt;&gt;&gt;</span> <span class="n">Blog</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">filter</span><span class="p">(</span><span class="n">name__startswith</span><span class="o">=</span><span class="s">'Beatles'</span><span class="p">).</span><span class="n">values</span><span class="p">()</span>
+<span class="o">&lt;</span><span class="n">QuerySet</span> <span class="p">[{</span><span class="s">'id'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s">'name'</span><span class="p">:</span> <span class="s">'Beatles Blog'</span><span class="p">,</span> <span class="s">'tagline'</span><span class="p">:</span> <span class="s">'All the latest Beatles news.'</span><span class="p">}]</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>select_related、prefetch_related方法区别在于select_related在存储层解决join，prefetch_related恰恰相反—在应用层解决join</p>
+
+<hr />
+
+<h4 id="读写分离">读写分离</h4>
+
+<p>ORM默认对Model操作都在default中进行，实际开发中，项目配置的数据库往往不止一个，此时就需要ORM提供路由功能:</p>
+
+<p><strong>针对不同的Model操作，路由到不同数据库中。</strong></p>
+
+<p>ORM提供了两种方式支持路由:</p>
+
+<ul>
+  <li>Router: 指定路由规则，后续针对Model的操作ORM会根据配置规则自动路由到对应的Database</li>
+  <li>QuerySet.using方法指定</li>
+</ul>
+
+<p>这里先了解下Router的方式是怎么实现自动路由。</p>
+
+<p>考虑一个简单的场景，某个项目下存在auth应用，其配置了两个数据库master和slave，现在需要针对master和slave做读写分离，在ORM中需要怎么做？首先需要定义一个类，其实现如下接口:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">AuthRouter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="s">"""
+    A router to control all database operations on models in the
+    auth application.
+    """</span>
+    <span class="k">def</span> <span class="nf">db_for_read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">"""
+        Attempts to read auth models go to auth_db.
+        """</span>
+        <span class="k">if</span> <span class="n">model</span><span class="p">.</span><span class="n">_meta</span><span class="p">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">'auth'</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">'slave'</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">db_for_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">"""
+        Attempts to write auth models go to auth_db.
+        """</span>
+        <span class="k">if</span> <span class="n">model</span><span class="p">.</span><span class="n">_meta</span><span class="p">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">'auth'</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">'master'</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">allow_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">"""
+        Allow relations if a model in the auth app is involved.
+        """</span>
+        <span class="k">if</span> <span class="n">obj1</span><span class="p">.</span><span class="n">_meta</span><span class="p">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">'auth'</span> <span class="ow">or</span> \
+           <span class="n">obj2</span><span class="p">.</span><span class="n">_meta</span><span class="p">.</span><span class="n">app_label</span> <span class="o">==</span> <span class="s">'auth'</span><span class="p">:</span>
+           <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">allow_migrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">,</span> <span class="n">app_label</span><span class="p">,</span> <span class="n">model_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">hints</span><span class="p">):</span>
+        <span class="s">"""
+        Make sure the auth app only appears in the 'auth_db'
+        database.
+        """</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+</code></pre></div></div>
+
+<p>上述接口即ORM Router类需要自定义的标准接口(也可以只实现你关心的接口)，通过AuthRouter我们指定了路由分配的规则，另外，我们还需要将AuthRouter指定的路由规则告知ORM，以便其进行调度，这通过在项目中的settings.py文件下配置</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># settings.py
+</span><span class="n">DATABASE_ROUTERS</span> <span class="o">=</span> <span class="p">[</span><span class="s">"path.to.AuthRouter"</span><span class="p">]</span>
+</code></pre></div></div>
+<p>这样，我们就简单实现了读写分离。</p>
+
+<p>关于ORM是如何调度路由规则，具体的实现对应Django源代码中的db.utils.ConnectionRouter类，感兴趣的可自行了解</p>
+
+<p>我们也可以通过手工指定Model操作的Database，具体的使用规则如下:</p>
+
+<ul>
+  <li>Model对象提供的save和delete方法，支持using参数明确指定使用的Database</li>
+  <li>QuerySet通过调用using方法来明确指定使用的Database</li>
+</ul>
+
+<h4 id="执行原生sql">执行原生SQL</h4>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">connections</span>
+
+<span class="k">def</span> <span class="nf">my_custom_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">connections</span><span class="p">[</span><span class="s">'my_db_alias'</span><span class="p">].</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+        <span class="n">cursor</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"UPDATE bar SET foo = 1 WHERE baz = %s"</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">.</span><span class="n">baz</span><span class="p">])</span>
+        <span class="n">cursor</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"SELECT foo FROM bar WHERE baz = %s"</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="p">.</span><span class="n">baz</span><span class="p">])</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">row</span>
+
+</code></pre></div></div>
+
+<h4 id="查看执行sql">查看执行SQL</h4>
+
+<p>QuerySet对象可通过query属性查看执行sql，如:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">12</span><span class="p">]:</span> <span class="n">qs</span> <span class="o">=</span> <span class="n">BaseUser</span><span class="p">.</span><span class="n">objects</span><span class="p">.</span><span class="nb">all</span><span class="p">()</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">13</span><span class="p">]:</span> <span class="nb">str</span><span class="p">(</span><span class="n">qs</span><span class="p">.</span><span class="n">query</span><span class="p">)</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">13</span><span class="p">]:</span> <span class="s">'SELECT `base_user_baseuser`.`id`, `base_user_baseuser`.`app`, `base_user_baseuser`.`user_id`, `base_user_baseuser`.`app_uid`, `base_user_baseuser`.`phone`, `base_user_baseuser`.`cha
+nnel`, `base_user_baseuser`.`push_token`, `base_user_baseuser`.`device_type`, `base_user_baseuser`.`device_id`, `base_user_baseuser`.`app_version_rds` FROM `base_user_baseuser`'</span>
+
+</code></pre></div></div>
+
+<p>Django ORM是否记录执行sql取决于如下函数:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">BaseDatabaseWrapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="o">@</span><span class="nb">property</span>
+    <span class="k">def</span> <span class="nf">queries_logged</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">force_debug_cursor</span> <span class="ow">or</span> <span class="n">settings</span><span class="p">.</span><span class="n">DEBUG</span>
+</code></pre></div></div>
+
+<p>通过配置django.db.backends即可在DEBUG环境下记录执行sql语句，force_debug_cursor可在线上临时查看，使用方法如下方式:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">connections</span>
+<span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">:</span>
+	<span class="n">connections</span><span class="p">[</span><span class="n">alias</span><span class="p">].</span><span class="n">force_debug_cursor</span> <span class="o">=</span> <span class="bp">True</span>
+</code></pre></div></div>
+
+<p>参考:</p>
+
+<p><a href="https://docs.djangoproject.com/en/1.11/ref/models/querysets/">QuerySet API reference</a></p>
+
+<p><a href="https://docs.djangoproject.com/en/1.11/topics/db/queries/">Making queries</a></p>
+
+<p><a href="https://docs.djangoproject.com/en/1.11/topics/db/multi-db/">Multiple Databases</a></p>
+
+<p><a href="https://docs.djangoproject.com/en/2.1/topics/db/sql/">Performing raw SQL queries</a></p>
+:ET

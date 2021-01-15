@@ -1,0 +1,294 @@
+I"L<p>描述符，算得上Python语言层次上面一个高级的特性，这篇文章会从三个方面介绍描述符特性:定义、触发机制、应用例子。另外，本文中所有代码均在Python 3.4下进行测试</p>
+
+<hr />
+
+<h4 id="定义">定义</h4>
+
+<p>Python标准语法规定描述符需要实现特定的描述符协议，其具体的描述符协议对应如下:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="nb">object</span><span class="p">.</span><span class="n">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="o">--&gt;</span> <span class="n">value</span>
+
+<span class="nb">object</span><span class="p">.</span><span class="n">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">--&gt;</span> <span class="bp">None</span>
+
+<span class="nb">object</span><span class="p">.</span><span class="n">__delete__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span> <span class="o">--&gt;</span> <span class="bp">None</span>
+
+</code></pre></div></div>
+
+<p>也就是说，如果一个对象定义了任意上述3个方法，则该对象被视为描述符对象，Python解释器会在一定条件下自动触发描述符行为。</p>
+
+<p>描述符从类别上分为两类:数据描述符和非数据描述符，数据描述符需要定义__get__和__set__，非数据描述符只需定义__get__，__delete__方法的定义与是否为数据描述符无关</p>
+
+<p>数据描述符与非数据描述符之间的差异主要体现在：当实例属性中存在与描述符同名属性时，如果描述符为数据描述符，则数据描述符优先级更高，否则实例属性优先级更高，一个简单对比两者差异的例子：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">DataDescriptor</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<span class="k">class</span> <span class="nc">NonDataDescriptor</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">x</span>
+
+
+<span class="k">class</span> <span class="nc">Person</span><span class="p">:</span>
+    <span class="n">data_age</span> <span class="o">=</span> <span class="n">DataDescriptor</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
+    <span class="n">non_data_age</span> <span class="o">=</span> <span class="n">NonDataDescriptor</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Person</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="c1"># test non-data descriptor
+</span>    <span class="k">print</span><span class="p">(</span><span class="s">"Before test non-data descriptor, age is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">non_data_age</span><span class="p">))</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">__dict__</span><span class="p">[</span><span class="s">'non_data_age'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">90</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"After test non-data descriptor, age is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">non_data_age</span><span class="p">))</span>
+
+    <span class="c1"># test data descriptor
+</span>    <span class="k">print</span><span class="p">(</span><span class="s">"Before test data descriptor, age is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">data_age</span><span class="p">))</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">__dict__</span><span class="p">[</span><span class="s">'data_age'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">233</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"After test data descriptor, age is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">data_age</span><span class="p">))</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">data_age</span> <span class="o">=</span> <span class="mi">26</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"After write attr, instance dict is {}, attr value is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">__dict__</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">data_age</span><span class="p">))</span>
+
+
+<span class="c1"># output
+</span><span class="p">{}</span>
+<span class="n">Before</span> <span class="n">test</span> <span class="n">non</span><span class="o">-</span><span class="n">data</span> <span class="n">descriptor</span><span class="p">,</span> <span class="n">age</span> <span class="ow">is</span> <span class="mi">25</span>
+<span class="n">After</span> <span class="n">test</span> <span class="n">non</span><span class="o">-</span><span class="n">data</span> <span class="n">descriptor</span><span class="p">,</span> <span class="n">age</span> <span class="ow">is</span> <span class="mi">90</span>
+<span class="n">Before</span> <span class="n">test</span> <span class="n">data</span> <span class="n">descriptor</span><span class="p">,</span> <span class="n">age</span> <span class="ow">is</span> <span class="mi">25</span>
+<span class="n">After</span> <span class="n">test</span> <span class="n">data</span> <span class="n">descriptor</span><span class="p">,</span> <span class="n">age</span> <span class="ow">is</span> <span class="mi">25</span>
+<span class="n">After</span> <span class="n">write</span> <span class="n">attr</span><span class="p">,</span> <span class="n">instance</span> <span class="nb">dict</span> <span class="ow">is</span> <span class="p">{</span><span class="s">'non_data_age'</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span> <span class="s">'data_age'</span><span class="p">:</span> <span class="mi">233</span><span class="p">},</span> <span class="n">attr</span> <span class="n">value</span> <span class="ow">is</span> <span class="mi">26</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="触发机制">触发机制</h4>
+
+<p>清楚了描述符的定义后，那再来看看描述符协议是怎么触发的。目前在Python中有两种方式触发描述符协议:</p>
+
+<ul>
+  <li>直接调用对象描述符协议方法，比如描述符对象d，则d.<strong>get</strong>(obj, type)会触发描述符协议</li>
+  <li>当作为类属性时，实例或者类访问该属性，会自动触发描述符协议</li>
+</ul>
+
+<p>第一种使用方法比较简单，这里主要介绍第二种方式的触发机制，从一个简单的例子看起：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Descriptor</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">name</span>
+
+
+<span class="k">class</span> <span class="nc">Person</span><span class="p">:</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Descriptor</span><span class="p">(</span><span class="s">'SkyMemory'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>上述代码中，Person类中name属性为描述符对象，我们知道类属性是可以通过实例或者类访问的，那这两种不同的访问触发机制有什么不同吗？</p>
+
+<p>针对类属性访问，也就是Person.name形式，触发机制存在于type.<strong>getattribute</strong>()，Person.name会被转换为Person.<strong>dict</strong>[‘name’].<strong>get</strong>(None, Person)方式调用描述符协议，整个触发过程类似如下代码:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="s">"Emulate type_getattro() in Objects/typeobject.c"</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="nb">object</span><span class="p">.</span><span class="n">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s">'__get__'</span><span class="p">):</span>
+       <span class="k">return</span> <span class="n">v</span><span class="p">.</span><span class="n">__get__</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">v</span>
+</code></pre></div></div>
+
+<p>另外，类操作描述符的方式，永远不会触发描述符__set__和__delete__方法</p>
+
+<p>针对实例属性访问，也就是Person().name形式，触发机制存在于object.<strong>getattribute</strong>()，p = Person(), p.name会被转换为type(p).<strong>dict</strong>[‘name’].<strong>get</strong>(p, type(p))方式，这里面还会涉及到数据描述符和非数据描述符优先级的逻辑。</p>
+
+<p>通过对比类和实例访问时的触发机制，我们可以得到一些关于描述符触发机制的关键点:</p>
+
+<ul>
+  <li>描述符是通过__getattribute__()方法触发，类和实例访问触发时，对应的__get__参数不同</li>
+  <li>数据描述符优先于实例__dict__属性，非数据描述符可以通过实例__dict__属性覆盖</li>
+</ul>
+
+<p>最后，从本质上来说，描述符有点类似于设计模式中的代理模式，我们可以通过描述符将隐藏属性存放于描述符中，对外暴露描述符即可，再由解释器帮我们完成整个代理协议的转换。</p>
+
+<hr />
+
+<h4 id="应用例子">应用例子</h4>
+
+<h5 id="property">property</h5>
+
+<p>property是Python提供的一种快速创建数据描述符的内置函数，也是比较常用的一种创建描述符方式，使用方式有如下两种:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># first
+</span><span class="k">class</span> <span class="nc">C</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">__x</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="o">@</span><span class="nb">property</span>
+    <span class="k">def</span> <span class="nf">nx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">__x</span>
+
+    <span class="o">@</span><span class="n">nx</span><span class="p">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">nx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">__x</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="o">@</span><span class="n">nx</span><span class="p">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">nx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="p">.</span><span class="n">__x</span>
+
+
+<span class="c1"># second
+</span>
+<span class="k">class</span> <span class="nc">D</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">__x</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">getx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">__x</span>
+
+    <span class="k">def</span> <span class="nf">setx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">__x</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">delx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="p">.</span><span class="n">__x</span>
+
+    <span class="n">xx</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">getx</span><span class="p">,</span> <span class="n">setx</span><span class="p">,</span> <span class="n">delx</span><span class="p">,</span> <span class="s">"I'm the 'x' property"</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>property本身也是一个描述符，不过它额外提供了一些公共接口，这里有个property等价实现:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">property</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="s">"Emulate PyProperty_Type() in Objects/descrobject.c"</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">fget</span> <span class="o">=</span> <span class="n">fget</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">fset</span> <span class="o">=</span> <span class="n">fset</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">fdel</span> <span class="o">=</span> <span class="n">fdel</span>
+        <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">fget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="n">fget</span><span class="p">.</span><span class="n">__doc__</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">fget</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="nb">AttributeError</span><span class="p">(</span><span class="s">"unreadable attribute"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">fget</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">fset</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="nb">AttributeError</span><span class="p">(</span><span class="s">"can't set attribute"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">fset</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__delete__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">fdel</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="nb">AttributeError</span><span class="p">(</span><span class="s">"can't delete attribute"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">fdel</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">fget</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">fset</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">fdel</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">__doc__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="p">.</span><span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">fdel</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">__doc__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fdel</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="p">.</span><span class="n">fget</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">__doc__</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<h5 id="函数和方法">函数和方法</h5>
+
+<p>先从一个例子看起:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="k">class</span> <span class="nc">D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+     <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">x</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">d</span> <span class="o">=</span> <span class="n">D</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">D</span><span class="p">.</span><span class="n">__dict__</span><span class="p">[</span><span class="s">'f'</span><span class="p">]</span> <span class="c1"># Stored internally as a function
+</span><span class="o">&lt;</span><span class="n">function</span> <span class="n">f</span> <span class="n">at</span> <span class="mh">0x00C45070</span><span class="o">&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">D</span><span class="p">.</span><span class="n">f</span>             <span class="c1"># Get from a class becomes an unbound method
+</span><span class="o">&lt;</span><span class="n">unbound</span> <span class="n">method</span> <span class="n">D</span><span class="p">.</span><span class="n">f</span><span class="o">&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">d</span><span class="p">.</span><span class="n">f</span>             <span class="c1"># Get from an instance becomes a bound method
+</span><span class="o">&lt;</span><span class="n">bound</span> <span class="n">method</span> <span class="n">D</span><span class="p">.</span><span class="n">f</span> <span class="n">of</span> <span class="o">&lt;</span><span class="n">__main__</span><span class="p">.</span><span class="n">D</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x00B18C90</span><span class="o">&gt;&gt;</span>
+</code></pre></div></div>
+
+<p>上述输出中产生了一个奇怪的问题：D属性__dict__中存放的f类型是函数，而通过类或者实例访问，则变成了方法</p>
+
+<p>f自身定义为在命名空间D下的一个函数，但通过属性或者类的访问方式，f类型发生了变化，结合上面讲述的描述符，容易生成一种猜想，Python的函数对象是不是也是一种描述符？简单的验证下猜想：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="k">pass</span>
+
+<span class="n">protocols</span> <span class="o">=</span> <span class="p">[</span><span class="s">'__set__'</span><span class="p">,</span> <span class="s">'__get__'</span><span class="p">,</span> <span class="s">'__delete__'</span><span class="p">]</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">protocols</span><span class="p">.</span><span class="n">__contains__</span><span class="p">,</span> <span class="nb">dir</span><span class="p">(</span><span class="n">test</span><span class="p">)))</span>
+
+<span class="c1"># output
+</span><span class="p">[</span><span class="s">'__get__'</span><span class="p">]</span>
+
+</code></pre></div></div>
+
+<p>从上述的输出结果中，我们可以得知，Python的函数对象是非数据描述符，这也就解释了为什么通过类或者实例访问时，f类型会产生变化。</p>
+
+<p>关于函数对象的__get__方法实现，这里有个参考的实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">types</span>
+
+<span class="k">class</span> <span class="nc">Function</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="p">.</span> <span class="p">.</span> <span class="p">.</span>
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="s">"Simulate func_descr_get() in Objects/funcobject.c"</span>
+        <span class="k">return</span> <span class="n">types</span><span class="p">.</span><span class="n">MethodType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h5 id="静态方法和类方法">静态方法和类方法</h5>
+
+<p>Python中有两个比较常用的内置函数:classmethod和staticmethod，staticmethod用于缩短代码垂直距离，classmethod用于实现类的多态性，而这两个方法的背后，都用到了描述符。</p>
+
+<p>关于staticmethod的实现，其大概的一种等价实现方式:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">staticmethod</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">func</span>
+
+</code></pre></div></div>
+<p>而classmethod的等价实现方式也与此类似:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+
+<span class="k">class</span> <span class="nc">myclassmethod</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">owner</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">owner</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">func</span><span class="p">,</span> <span class="n">owner</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>另外，关于类方法或静态方法上存在多个装饰器时，@classmethod和@staticmethod一定要放在最上面的原因，这里也给出了对应的答案。</p>
+
+<p><a href="https://docs.python.org/3.4/howto/descriptor.html?highlight=descriptor">Descriptor HowTo Guide</a></p>
+:ET

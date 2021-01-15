@@ -1,0 +1,188 @@
+I"�a<p><em>DES</em>算法全称<em>Data Encryption Standard</em>，即数据加密标准，是一种对称加密算法。</p>
+
+<h4 id="des加密原理">DES加密原理</h4>
+
+<p><em>DES</em>算法通过将明文分成大小为<em>8</em>字节的多个明文块（不足<em>8</em>字节通过填充方式补齐），然后对每个明文块应用密钥加密得到对应的密文块，将多个密文块组合起来就得到了最终的密文，其过程如下图所示：</p>
+
+<p><img src="/img/2019/04/19/01/01.png" alt="" /></p>
+
+<p>明文块转换为密文块流程：</p>
+
+<p><img src="/img/2019/04/19/01/02.gif" alt="" /></p>
+
+<p>明文块如何转换为密文块是整个<em>DES</em>算法的核心，其步骤可以分为两步：</p>
+
+<ul>
+  <li>根据密钥计算出子密钥</li>
+  <li>子密钥与明文通过一系列的迭代操作，变成密文的加密过程</li>
+</ul>
+
+<p>在开始后续了解之前，先编写下面代码，后面会在<em>DES</em>类中添加方法。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">nth_bit_of_byte</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">v</span> <span class="o">&gt;&gt;</span> <span class="n">n</span> <span class="o">&amp;</span> <span class="mi">1</span>
+    
+<span class="k">class</span> <span class="nc">DES</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secret_key</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secret_key</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">secret_key</span><span class="p">)</span> <span class="o">==</span> <span class="mi">8</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="n">secret_key</span>
+        <span class="c1"># 计算子密钥
+</span>        <span class="bp">self</span><span class="p">.</span><span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">_calc_subkeys</span><span class="p">())</span>
+</code></pre></div></div>
+
+<p>下面，我们分别来了解下子密钥和加密过程。</p>
+
+<hr />
+
+<h4 id="子密钥">子密钥</h4>
+
+<p><em>DES</em>的初始密钥<strong><em>K</em></strong>为<em>64</em>位，按<em>8</em>行<em>8</em>列从左到右、从上到下排列，采用字节内高位低编号、低址优先的编号方式，以密钥<em>abcdefgh</em>为例，其对应的二进制矩阵为:</p>
+
+<p><img src="/img/2019/04/19/01/03.jpg" alt="" /></p>
+
+<p><em>bit</em>编号方式为以<em>1</em>开始，从左到右、从上到下递增，这在密钥置换中会使用到。</p>
+
+<p>首先，将初始密钥<strong><em>K</em></strong>经过<strong><em>PC1</em></strong>置换，生成<em>56</em>位的串。</p>
+
+<p><img src="/img/2019/04/19/01/04.png" alt="img" /></p>
+
+<p>从上表中可知，初始密钥<strong><em>K</em></strong>第<em>8</em>、<em>16</em>、<em>24</em>、<em>32</em>、<em>40</em>、<em>48</em>、<em>56</em>、<em>64</em>共<em>8</em>个位被去掉，被去掉的<em>8</em>个位一般用来做奇偶性校验，以防不同<strong><em>K</em></strong>经过<strong><em>PC1</em></strong>变换后得到的串相同，不过实际中很少校验。</p>
+
+<p>经过<strong><em>PC1</em></strong>置换后，将输出分为前<em>28</em>位 <em>\(C_{0}\)</em>、后<em>28</em>位<em>\(D_{0}\)</em>，分别循环左移<em>1</em>位得到<em>\(C_{1}\)</em>、<em>\(D_{1}\)</em>，将<em>\(C_{1}\)</em>、<em>\(D_{1}\)</em>合并为<em>56</em>位串，经<strong><em>PC2</em></strong>变换得到子密钥<strong><em>\(K_{1}\)</em></strong>。<em>\(C_{1}\)</em>、<em>\(D_{1}\)</em>分别循环1位得到<em>\(C_{2}\)</em>、<em>\(D_{2}\)</em>，合并<em>\(C_{2}\)</em>、<em>\(D_{2}\)</em>，经<strong><em>PC2</em></strong>变换得到子密钥<em>\(K_{2}\)</em>。重复此过程，直到得到子密钥<em>\(K_{16}\)</em>。</p>
+
+<p><img src="/img/2019/04/19/01/05.png" alt="" /></p>
+
+<p>循环左移位数与迭代轮数之间的对应关系：</p>
+
+<p><img src="/img/2019/04/19/01/06.png" alt="" /></p>
+
+<p>计算子密钥的代码：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">def</span> <span class="nf">_calc_subkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="c1"># 密钥置换PC1
+</span>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">PC1</span><span class="p">):</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x07</span>
+            <span class="n">k</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nth_bit_of_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">secret_key</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="mi">7</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span>
+        <span class="c1"># 循环左移、PC2变换
+</span>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ROTATE_STEPS</span><span class="p">:</span>
+            <span class="n">k</span><span class="p">[:</span><span class="mi">28</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="mi">28</span><span class="p">]</span> <span class="o">+</span> <span class="n">k</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">k</span><span class="p">[</span><span class="mi">28</span><span class="p">:]</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="mi">28</span> <span class="o">+</span> <span class="n">i</span><span class="p">:]</span> <span class="o">+</span> <span class="n">k</span><span class="p">[</span><span class="mi">28</span><span class="p">:</span> <span class="mi">28</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
+            <span class="k">yield</span> <span class="nb">bytearray</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">k</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">PC2</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p>其中变量<em>PC1</em>、<em>PC2</em>、<em>ROTATE_STEPS</em>分别对应上述中的<strong><em>PC1</em></strong>、<strong><em>PC2</em></strong>及循环位移序列。</p>
+
+<hr />
+
+<h4 id="加密过程">加密过程</h4>
+
+<p><em>64</em>位明文串经过初始置换<strong><em>IP</em></strong>，产生了新<em>64</em>位输出，将其分为左<em>32</em>位<em>\(L_{0}\)</em>、右<em>32</em>位<em>\(R_{0}\)</em>。</p>
+
+<p><img src="/img/2019/04/19/01/07.png" alt="" /></p>
+
+<p>将<em>\(R_{0}\)</em>与子密钥<em>\(K_{1}\)</em>经过函数<em>F（\(R_{0}\)，\(K_{1}\)）</em>得到<em>32</em>位输出<em>\(f_{1}\)</em>，<em>\(f_{1}\)</em>与<em>\(L_{0}\)</em>做二进制异或运算结果赋值给<em>\(R_{1}\)</em>，<em>\(R_{0}\)</em>则赋值给<em>\(L_{1}\)</em>。然后<em>\(R_{1}\)</em>与子密钥<em>\(K_{2}\)</em>经过函数<em>F（\(R_{1}\)，\(K_{2}\)）</em>得到<em>32</em>位输出<em>\(f_{1}\)</em>，<em>\(f_{1}\)</em>与<em>\(L_{1}\)</em>做二进制异或运算结果赋值给<em>\(R_{2}\)</em>，<em>\(R_{1}\)</em>则赋值给<em>\(L_{2}\)</em>，重复此过程<em>16</em>轮，得到<em>\(L_{16}\)</em>、<em>\(R_{16}\)</em>。</p>
+
+<p><em>\(L_{16}\)</em>、<em>\(R_{16}\)</em>合并后的结果经过置换<strong><em>\(IP^{-1}\)</em></strong>，得到最终密文。</p>
+
+<p><img src="/img/2019/04/19/01/08.png" alt="" /></p>
+
+<hr />
+
+<h4 id="函数f">函数F</h4>
+
+<p><strong><em>F</em></strong>的作用在于将<em>32</em>位数据<em>d</em>和<em>48</em>子密钥<em>k</em>进行一系列计算，产生<em>32</em>位输出数据。</p>
+
+<p>首先，<em>d</em>通过扩展置换<em>E</em>从<em>32</em>变为<em>48</em>位，将扩展置换后的结果与子密钥<em>k</em>进行二进制异或运算得到<em>t</em>。</p>
+
+<p><img src="/img/2019/04/19/01/09.png" alt="" /></p>
+
+<p>将<em>t</em>分成<em>8</em>个<em>6</em>位的块，每块通过对应的一个<strong><em>S</em></strong>盒产生一个<em>4</em>位输出，<strong><em>S</em></strong>盒具体处理逻辑为：取第一位和第六位得到二进制数<em>r</em>，第二位到第五位构成另外一个二进制数<em>c</em>，查询<strong><em>S</em></strong>盒<em>r</em>行<em>c</em>列得到对应的十进制数，将该十进制数转换为<em>4</em>位二进制数输出。</p>
+
+<p><img src="/img/2019/04/19/10.jpg" alt="" /></p>
+
+<p><em>8</em>个块对应的<strong><em>S</em></strong>盒输出拼接后，通过<strong><em>P</em></strong>盒置换，产生函数<strong><em>F</em></strong>输出。</p>
+
+<p><img src="/img/2019/04/19/04/11.png" alt="" /></p>
+
+<p>整个加密过程涉及代码：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="c1"># 扩展置换
+</span>        <span class="n">s1</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">E</span><span class="p">)</span>
+        <span class="c1"># 异或运算
+</span>        <span class="n">s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">operator</span><span class="p">.</span><span class="n">xor</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s1</span><span class="p">))</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="c1"># S盒置换
+</span>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span> <span class="o">|</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span> <span class="o">|</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span> <span class="o">|</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span> <span class="o">|</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">4</span><span class="p">]</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">S_BOX</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">64</span> <span class="o">+</span> <span class="n">row</span> <span class="o">*</span> <span class="mi">16</span> <span class="o">+</span> <span class="n">col</span><span class="p">]</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">i</span> <span class="o">//</span> <span class="mi">6</span> <span class="o">*</span> <span class="mi">4</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+                <span class="n">t</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">nth_bit_of_byte</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">3</span> <span class="o">-</span> <span class="n">j</span><span class="p">)</span>
+
+        <span class="c1"># P盒置换
+</span>        <span class="n">tt</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">P_BOX</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tt</span>
+
+    <span class="k">def</span> <span class="nf">_bits_to_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">rs</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">i</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="mh">0x07</span>
+            <span class="n">rs</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">|=</span> <span class="n">bits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="mi">7</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rs</span>
+
+    <span class="k">def</span> <span class="nf">encrypt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clear_text</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+        <span class="c1"># 初始置换
+</span>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">IP</span><span class="p">):</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x07</span>
+            <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nth_bit_of_byte</span><span class="p">(</span><span class="n">clear_text</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="mi">7</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span>
+
+        <span class="c1"># 迭代运算
+</span>        <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="p">[:</span><span class="mi">32</span><span class="p">],</span> <span class="n">s</span><span class="p">[</span><span class="mi">32</span><span class="p">:]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">keys</span><span class="p">:</span>
+            <span class="n">f1</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">_f</span><span class="p">(</span><span class="n">s2</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">operator</span><span class="p">.</span><span class="n">xor</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">f1</span><span class="p">))</span>
+            <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">s2</span><span class="p">,</span> <span class="n">t</span>
+
+        <span class="c1"># 末置换
+</span>        <span class="n">r</span> <span class="o">=</span> <span class="n">s2</span> <span class="o">+</span> <span class="n">s1</span>
+        <span class="n">rr</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">INVERSE_IP</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">_bits_to_bytes</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span> <span class="mi">64</span><span class="p">)</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="其他">其他</h4>
+
+<p>解密的过程亦为加密的逆运算，不做过多解释。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">def</span> <span class="nf">decrypt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secret_text</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">INVERSE_IP</span><span class="p">):</span>
+            <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">i</span> <span class="o">&gt;&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="mh">0x07</span>
+            <span class="n">s</span><span class="p">[</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">nth_bit_of_byte</span><span class="p">(</span><span class="n">secret_text</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="mi">7</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span>
+
+        <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">32</span><span class="p">:],</span> <span class="n">s</span><span class="p">[:</span><span class="mi">32</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">keys</span><span class="p">):</span>
+            <span class="n">f1</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">_f</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">operator</span><span class="p">.</span><span class="n">xor</span><span class="p">,</span> <span class="n">s2</span><span class="p">,</span> <span class="n">f1</span><span class="p">))</span>
+            <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">t</span><span class="p">,</span> <span class="n">s1</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s1</span> <span class="o">+</span> <span class="n">s2</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">IP</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">v</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">.</span><span class="n">_bits_to_bytes</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span> <span class="mi">64</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>另外，本文有个地方没有涉及到的是填充这部分，后续有时间在补上。</p>
+
+<h4 id="参考文献">参考文献</h4>
+
+<p><a href="https://marshal-r.iteye.com/blog/2089963">DES加密算法原理解析</a></p>
+:ET

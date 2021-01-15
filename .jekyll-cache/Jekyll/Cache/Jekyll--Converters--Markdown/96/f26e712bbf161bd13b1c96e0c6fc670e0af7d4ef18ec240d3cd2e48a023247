@@ -1,0 +1,232 @@
+I"'Y<p>Celery是一个基于Python开发的分布式任务队列系统，支持实时性、周期性任务，各组件关系图：</p>
+
+<p><img src="/img/2018/11/18/01/01.jpeg" alt="" /></p>
+
+<hr />
+
+<h4 id="broker">Broker</h4>
+
+<p>Celery支持多种Broker，完整支持列表<a href="http://docs.celeryproject.org/en/latest/getting-started/brokers/">Brokers</a>，官方推荐使用RabbitMQ作为Broker，为简单起见，本文使用Redis作为例子介绍。</p>
+
+<hr />
+
+<h4 id="一个简单的例子">一个简单的例子</h4>
+
+<p>同一文件夹下创建tasks.py、celerycfg.py两个文件，文件内容分别为：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># file: tasks.py
+</span><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+
+<span class="n">celery_app</span> <span class="o">=</span> <span class="n">Celery</span><span class="p">(</span><span class="s">'tasks'</span><span class="p">)</span>
+<span class="n">celery_app</span><span class="p">.</span><span class="n">config_from_object</span><span class="p">(</span><span class="s">'celerycfg'</span><span class="p">)</span>
+
+
+<span class="o">@</span><span class="n">celery_app</span><span class="p">.</span><span class="n">task</span>
+<span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+
+</code></pre></div></div>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># file: celerycfg.py
+</span><span class="kn">import</span> <span class="nn">pytz</span>
+
+<span class="c1"># 使用Redis做Broker
+</span><span class="n">broker_url</span> <span class="o">=</span> <span class="s">'redis://localhost'</span>
+
+<span class="c1"># 任务结果存放于Redis
+</span><span class="n">result_backend</span> <span class="o">=</span> <span class="s">'redis://localhost/1'</span>
+
+<span class="c1"># 任务序列化方式为json
+</span><span class="n">task_serializer</span> <span class="o">=</span> <span class="s">'json'</span>
+
+<span class="c1"># 消费者只处理任务序列化方式为json的消息
+</span><span class="n">accept_content</span> <span class="o">=</span> <span class="p">[</span><span class="s">'json'</span><span class="p">]</span>
+
+<span class="c1"># 结果序列化方式同样为json
+</span><span class="n">result_serializer</span> <span class="o">=</span> <span class="s">'json'</span>
+
+<span class="c1"># 结果过期时间
+</span><span class="n">result_expires</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+
+<span class="c1"># 指定时区，消息中的日期时间都会格式化为对应时区isoformat
+</span><span class="n">timezone</span> <span class="o">=</span> <span class="n">pytz</span><span class="p">.</span><span class="n">timezone</span><span class="p">(</span><span class="s">'Asia/Shanghai'</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<p>完整的配置选项说明 <a href="http://docs.celeryproject.org/en/latest/userguide/configuration.html">Configuration and defaults</a></p>
+
+<p>启动消费者进程:</p>
+
+<p><code class="language-plaintext highlighter-rouge">celery worker -A tasks -l DEBUG</code></p>
+
+<p><img src="/img/2018/11/18/01/02.png" alt="celery-startup" /></p>
+
+<p>启动过程中，终端会显示当前worker节点信息（如：broker地址、注册任务、监听队列等），可用于判断worker节点配置是否符合预期。</p>
+
+<p>Celery提供两种方式触发异步任务，调用任务提供的方法：<code class="language-plaintext highlighter-rouge">delay</code>和<code class="language-plaintext highlighter-rouge">apply_async</code>。</p>
+
+<p>通过<code class="language-plaintext highlighter-rouge">celery shell -A tasks</code>打开终端：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="n">r</span> <span class="o">=</span> <span class="n">add</span><span class="p">.</span><span class="n">delay</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="n">r</span><span class="p">.</span><span class="n">task_id</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="s">'a3c4eb27-11c9-42e6-9f05-57e17af63f68'</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">r</span><span class="p">.</span><span class="n">status</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="sa">u</span><span class="s">'SUCCESS'</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">r</span><span class="p">.</span><span class="n">result</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="mi">5</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="n">r</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="o">&lt;</span><span class="n">AsyncResult</span><span class="p">:</span> <span class="n">a3c4eb27</span><span class="o">-</span><span class="mi">11</span><span class="n">c9</span><span class="o">-</span><span class="mf">42e6</span><span class="o">-</span><span class="mi">9</span><span class="n">f05</span><span class="o">-</span><span class="mf">57e17</span><span class="n">af63f68</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">delay</code>方法会返回一个<code class="language-plaintext highlighter-rouge">AsyncResult</code>对象，通过该对象，可获取到对应任务id、任务执行结果、任务状态等信息</p>
+
+<p><code class="language-plaintext highlighter-rouge">delay</code>方法只是对<code class="language-plaintext highlighter-rouge">apply_async</code>方法做了简单的封装，<code class="language-plaintext highlighter-rouge">apply_async</code>支持更多的参数，如可通过指定countdown、eta、expires关键参数明确任务执行时间或任务过期时间:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">pytz</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="n">eta</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="n">app</span><span class="p">.</span><span class="n">conf</span><span class="p">.</span><span class="n">timezone</span><span class="p">.</span><span class="n">localize</span><span class="p">(</span><span class="n">datetime</span><span class="p">.</span><span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">())</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">add</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">89</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">)</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="o">&lt;</span><span class="n">AsyncResult</span><span class="p">:</span> <span class="mi">7</span><span class="n">b3aeb2d</span><span class="o">-</span><span class="n">c0b2</span><span class="o">-</span><span class="mi">4363</span><span class="o">-</span><span class="n">a4e6</span><span class="o">-</span><span class="n">bc8b355881f8</span><span class="o">&gt;</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="n">add</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="o">&lt;</span><span class="n">AsyncResult</span><span class="p">:</span> <span class="mi">82</span><span class="n">eea5d1</span><span class="o">-</span><span class="mi">4</span><span class="n">ae6</span><span class="o">-</span><span class="mi">4</span><span class="n">b78</span><span class="o">-</span><span class="mi">8762</span><span class="o">-</span><span class="mi">465</span><span class="n">cd92ec91f</span><span class="o">&gt;</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="n">add</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">expires</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="o">&lt;</span><span class="n">AsyncResult</span><span class="p">:</span> <span class="mi">48</span><span class="n">b6cced</span><span class="o">-</span><span class="mi">1</span><span class="n">abd</span><span class="o">-</span><span class="mi">4</span><span class="n">ac0</span><span class="o">-</span><span class="n">b4ff</span><span class="o">-</span><span class="n">f3a10e47e378</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>根据task_id获取任务的状态、结果等信息：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">13</span><span class="p">]:</span> <span class="kn">from</span> <span class="nn">celery.result</span> <span class="kn">import</span> <span class="n">AsyncResult</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">14</span><span class="p">]:</span> <span class="n">ar</span> <span class="o">=</span> <span class="n">AsyncResult</span><span class="p">(</span><span class="s">'48b6cced-1abd-4ac0-b4ff-f3a10e47e378'</span><span class="p">)</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">15</span><span class="p">]:</span> <span class="n">ar</span><span class="p">.</span><span class="n">status</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">15</span><span class="p">]:</span> <span class="sa">u</span><span class="s">'SUCCESS'</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">16</span><span class="p">]:</span> <span class="n">ar</span><span class="p">.</span><span class="n">result</span>
+<span class="n">Out</span><span class="p">[</span><span class="mi">16</span><span class="p">]:</span> <span class="mi">15</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="指定队列">指定队列</h4>
+
+<p>Celery默认会将任务路由到队列名为celery的队列中，也可以自定义队列名及路由规则将任务路由到不同队列避免任务积压导致处理延迟问题。</p>
+
+<p><code class="language-plaintext highlighter-rouge">celerycfg.py</code>、<code class="language-plaintext highlighter-rouge">tasks.py</code>文件中分别增加如下内容：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># celerycfg.py
+</span><span class="kn">from</span> <span class="nn">kombu</span> <span class="kn">import</span> <span class="n">Queue</span>
+
+<span class="c1"># 指定默认队列名
+</span><span class="n">task_default_queue</span> <span class="o">=</span> <span class="s">'canal'</span>
+<span class="n">task_queues</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">Queue</span><span class="p">(</span><span class="s">'canal.feed'</span><span class="p">),</span>
+    <span class="n">Queue</span><span class="p">(</span><span class="s">'canal'</span><span class="p">),</span>
+    <span class="n">Queue</span><span class="p">(</span><span class="s">'canal.notify'</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">task_routes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">'tasks.add'</span><span class="p">:</span> <span class="s">'canal'</span><span class="p">,</span>
+    <span class="s">'tasks.notify'</span><span class="p">:</span> <span class="s">'canal.notify'</span><span class="p">,</span>
+    <span class="s">'tasks.feed'</span><span class="p">:</span> <span class="s">'canal.feed'</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># tasks.py
+</span><span class="o">@</span><span class="n">celery_app</span><span class="p">.</span><span class="n">task</span>
+<span class="k">def</span> <span class="nf">notify</span><span class="p">():</span>
+    <span class="k">print</span> <span class="s">"notify task is executing"</span>
+
+<span class="o">@</span><span class="n">celery_app</span><span class="p">.</span><span class="n">task</span>
+<span class="k">def</span> <span class="nf">feed</span><span class="p">():</span>
+    <span class="k">print</span> <span class="s">"feed task is executing"</span>
+</code></pre></div></div>
+
+<p>启动消费者时，通过<code class="language-plaintext highlighter-rouge">-Q</code>选项明确指定监听队列：</p>
+
+<p><code class="language-plaintext highlighter-rouge">celery worker -A tasks -l DEBUG -Q canal.feed,canal.notify</code></p>
+
+<p>Celery会将任务模块名和任务名拼接<code class="language-plaintext highlighter-rouge">module_name.task_name</code>，根据<code class="language-plaintext highlighter-rouge">task_routes</code>获取对应的<code class="language-plaintext highlighter-rouge">routing_key</code>。</p>
+
+<p>个人建议默认队列名不要用celery名称，在一些公司中，不免会遇到同一个测试环境中部署几个不同服务，如果自己负责的服务测试环境broker地址和别的服务一样，可能会导致任务丢失，建议默认队列名为服务名，剩余队列以<code class="language-plaintext highlighter-rouge">service_name.name</code>命名。</p>
+
+<hr />
+
+<h4 id="celery-beat">Celery Beat</h4>
+
+<p><code class="language-plaintext highlighter-rouge">Celery Beat</code>用于管理周期性任务，周期性任务通过<code class="language-plaintext highlighter-rouge">beat_schedule</code>配置项指定，在<code class="language-plaintext highlighter-rouge">celerycfg.py</code>中添加如下配置:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
+
+<span class="n">beat_schedule</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">'add'</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s">'task'</span><span class="p">:</span> <span class="s">'tasks.add'</span><span class="p">,</span>
+        <span class="s">'schedule'</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">'*/2'</span><span class="p">),</span>
+        <span class="s">'args'</span><span class="p">:</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>启动beat进程：</p>
+
+<p><code class="language-plaintext highlighter-rouge">celery beat -A tasks -l DEBUG</code></p>
+
+<p>每隔两分钟，通过worker终端，可看到任务执行情况，具体<code class="language-plaintext highlighter-rouge">crontab</code>说明，参见<a href="http://docs.celeryproject.org/en/latest/reference/celery.schedules.html#celery.schedules.crontab">crontab</a></p>
+
+<hr />
+
+<h4 id="任务重试撤销">任务重试、撤销</h4>
+
+<p><code class="language-plaintext highlighter-rouge">worker</code>在执行任务时，可能会遇到网络不可达等需要任务重试的情况，Celery同样提供了任务重试机制，在<code class="language-plaintext highlighter-rouge">tasks.py</code>中添加如下内容：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">@</span><span class="n">celery_app</span><span class="p">.</span><span class="n">task</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">div</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">y</span>
+    <span class="k">except</span> <span class="nb">ZeroDivisionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="bp">self</span><span class="p">.</span><span class="n">retry</span><span class="p">(</span><span class="n">exc</span><span class="o">=</span><span class="n">e</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r</span>
+</code></pre></div></div>
+
+<p>通过<code class="language-plaintext highlighter-rouge">celery shell</code>调用<code class="language-plaintext highlighter-rouge">div(2,0)</code>，从对应的终端，会看到任务执行了重试逻辑。</p>
+
+<p>异步带来的一个典型好处在于可以撤销之前的任务，这在<code class="language-plaintext highlighter-rouge">Celery</code>中也可以做到。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">In</span> <span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="kn">from</span> <span class="nn">celery.task.control</span> <span class="kn">import</span> <span class="n">revoke</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="n">r</span> <span class="o">=</span> <span class="n">add</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">7</span><span class="p">]:</span> <span class="n">r</span><span class="p">.</span><span class="n">revoke</span><span class="p">()</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">8</span><span class="p">]:</span> <span class="n">r1</span> <span class="o">=</span> <span class="n">add</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">revoke</span><span class="p">(</span><span class="n">r1</span><span class="p">.</span><span class="n">task_id</span><span class="p">)</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="flower">Flower</h4>
+
+<p><code class="language-plaintext highlighter-rouge">Flower</code>是基于<code class="language-plaintext highlighter-rouge">web</code>的监控和管理<code class="language-plaintext highlighter-rouge">celery</code>的工具，提供了常规监控功能，如队列长度、<code class="language-plaintext highlighter-rouge">worker</code>状态及统计、任务详细信息等，具体使用说明可参见官方文档<a href="https://flower-docs-cn.readthedocs.io/zh/latest/">Flower</a>。</p>
+
+<p>一般通过如下命令启动即可：</p>
+
+<p><code class="language-plaintext highlighter-rouge">flower -A tasks —-max_tasks=5000 --port=800</code></p>
+
+<hr />
+
+<h4 id="未完待续">未完待续</h4>
+
+<p>本文只是简单介绍了Celery使用，还有些更进一步的知识需要了解，比如:</p>
+<ul>
+  <li>消费、确认机制</li>
+  <li>AMQP协议</li>
+</ul>
+:ET

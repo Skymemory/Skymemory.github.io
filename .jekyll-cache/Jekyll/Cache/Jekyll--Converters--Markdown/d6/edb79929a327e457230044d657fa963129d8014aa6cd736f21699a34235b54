@@ -1,0 +1,254 @@
+I"sh<p>在前一篇文章中提到过，<em>CPython</em>由于实现上的缺陷导致了其对<em>CPU</em>繁忙型任务支持有限，不过<em>Python</em>提供了一种解决方案——多进程，多进程方式通过给每个进程启动一个单独的解释器来避免了<em>GIL</em>问题。</p>
+
+<hr />
+
+<h4 id="多进程">多进程</h4>
+
+<p>多进程提供了两种使用方式:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="k">def</span> <span class="nf">worker</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Current process pid is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">getpid</span><span class="p">()))</span>
+
+<span class="k">class</span> <span class="nc">MyProcess</span><span class="p">(</span><span class="n">multiprocessing</span><span class="p">.</span><span class="n">Process</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">().</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">address</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"Current process pid is {}, address {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">getpid</span><span class="p">(),</span> <span class="bp">self</span><span class="p">.</span><span class="n">address</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Main process pid is {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">getpid</span><span class="p">()))</span>
+
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">worker</span><span class="p">)</span>
+    <span class="n">p1</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">MyProcess</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="s">'beijing'</span><span class="p">)</span>
+    <span class="n">p2</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="n">p1</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="n">p2</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="启动方式">启动方式</h4>
+
+<p><em>multiprocessing</em>支持3种方式启动进程，分别是<em>fork</em>、<em>spawn</em>、<em>forkserver</em>，可通过如下方法查看、设置:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+<span class="n">multiprocessing</span><span class="p">.</span><span class="n">get_all_start_methods</span><span class="p">()</span>
+<span class="n">multiprocessing</span><span class="p">.</span><span class="n">get_start_method</span><span class="p">()</span>
+<span class="n">multiprocessing</span><span class="p">.</span><span class="n">set_start_method</span><span class="p">(</span><span class="s">'fork'</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="ipc">IPC</h4>
+
+<h5 id="pipe">PIPE</h5>
+
+<p>管道，有单向、先进先出、无结构字节流特点，读写端可以同时进行，父子之间继承关系：</p>
+
+<p><img src="/img/2019/05/10/01/01.png" alt="" /></p>
+
+<p>父进程<em>fork</em>出子进程后，子进程继承了父进程的资源(包括文件描述符等)，父子进程确定了管道的传输方向后，通常情况下需关闭无用的文件描述符:</p>
+
+<p><img src="/img/2019/05/10/01/02.png" alt="" /></p>
+
+<p><em>Pipe</em>使用例子:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Pipe</span>
+
+<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">conn</span><span class="p">):</span>
+    <span class="n">conn</span><span class="p">.</span><span class="n">send</span><span class="p">([</span><span class="mi">42</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s">'hello'</span><span class="p">])</span>
+    <span class="n">conn</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">reader</span><span class="p">,</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">Pipe</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">writer</span><span class="p">,))</span>
+
+    <span class="n">p</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">reader</span><span class="p">.</span><span class="n">recv</span><span class="p">())</span>  <span class="c1"># prints "[42, None, 'hello']"
+</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p><em>Pipe</em>使用有两个地方需要特别注意：</p>
+
+<ul>
+  <li>通过<em>send</em>方法发送的对象，必须是可<em>pickable</em></li>
+  <li><em>Pipe</em>非线程或进程安全，但可同时读写</li>
+</ul>
+
+<h5 id="队列">队列</h5>
+
+<p>标准库提供了3种进程安全的队列，分别是<strong>SimpleQueue</strong>、<strong>JoinableQueue</strong>、<strong>Queue</strong>，其内部都是基于<em>Pipe</em>实现，使用例子:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+<span class="k">def</span> <span class="nf">worker</span><span class="p">(</span><span class="n">enqueue</span><span class="p">,</span> <span class="n">sentinel</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">enqueue</span><span class="p">.</span><span class="n">get</span><span class="p">,</span> <span class="n">sentinel</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"Receive item {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+        <span class="n">enqueue</span><span class="p">.</span><span class="n">task_done</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">broker</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">JoinableQueue</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">worker</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">broker</span><span class="p">,</span> <span class="p">))</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c1"># simulate create tasks
+</span>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">broker</span><span class="p">.</span><span class="n">put</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="n">broker</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="n">broker</span><span class="p">.</span><span class="n">put</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="pool">Pool</h4>
+
+<p>通常情况下需要利用进程池来避免进程创建、销毁开销，同样地，标准库提供了进程池供开发者使用：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+<span class="k">def</span> <span class="nf">square</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span>
+
+<span class="n">cpu_cores</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">cpu_count</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">cpu_cores</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">pool</span><span class="p">.</span><span class="nb">map</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">pool</span><span class="p">.</span><span class="nb">apply</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,))</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">pool</span><span class="p">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,))</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">get</span><span class="p">())</span>
+</code></pre></div></div>
+
+<p><em>Pool</em>提供的<em>API</em>可分为三类：同步、异步、<em>MapReduce</em>，关于<em>MapReduce</em>的<em>API</em>，有个细节需要注意：标准库并没有做容错性处理，也就是说如果<em>Map</em>出去的某个<em>chunk</em>出了问题导致其结果没有传回，同步调用的方式会导致主进程死等，所以比较好的调用方式是通过异步和超时控制：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+<span class="k">def</span> <span class="nf">square</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span>
+
+<span class="n">cpu_cores</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">cpu_count</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">cpu_cores</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">async_result</span> <span class="o">=</span> <span class="n">pool</span><span class="p">.</span><span class="n">map_async</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">async_result</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="nb">TimeoutError</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"Fetch result got timeout."</span><span class="p">)</span>
+
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="共享状态">共享状态</h4>
+
+<p><em>multiprocessing</em>提供的共享状态有两种方式：共享内存、服务器进程。</p>
+
+<h5 id="共享内存">共享内存</h5>
+
+<p>主要通过<em>Value</em>或<em>Array</em>实现:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Array</span>
+
+<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="n">n</span><span class="p">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">3.1415927</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)):</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="s">'d'</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">Array</span><span class="p">(</span><span class="s">'i'</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">arr</span><span class="p">))</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="n">num</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">arr</span><span class="p">[:])</span>
+</code></pre></div></div>
+
+<p>输出如下：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mf">3.1415927</span><span class="w">
+</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">-1</span><span class="p">,</span><span class="w"> </span><span class="nt">-2</span><span class="p">,</span><span class="w"> </span><span class="nt">-3</span><span class="p">,</span><span class="w"> </span><span class="nt">-4</span><span class="p">,</span><span class="w"> </span><span class="nt">-5</span><span class="p">,</span><span class="w"> </span><span class="nt">-6</span><span class="p">,</span><span class="w"> </span><span class="nt">-7</span><span class="p">,</span><span class="w"> </span><span class="nt">-8</span><span class="p">,</span><span class="w"> </span><span class="nt">-9</span><span class="p">]</span><span class="w">
+</span></code></pre></div></div>
+
+<p><em>Value</em>或<em>Array</em>对象内部默认会有一把可重入锁来同步访问该对象，所以并发情况下对共享对象进行写操作时，需如下操作:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Value</span><span class="p">,</span> <span class="n">Process</span>
+
+<span class="k">def</span> <span class="nf">increment_share_state</span><span class="p">(</span><span class="n">counter</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">counter</span><span class="p">.</span><span class="n">get_lock</span><span class="p">():</span>
+        <span class="n">counter</span><span class="p">.</span><span class="n">value</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="n">share_value</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="s">'i'</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="n">ps</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">increment_share_state</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">share_value</span><span class="p">,))</span>
+    <span class="n">ps</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ps</span><span class="p">:</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">ps</span><span class="p">:</span>
+    <span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+    
+<span class="k">print</span><span class="p">(</span><span class="n">share_value</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="同步互斥">同步、互斥</h4>
+
+<p>同步与互斥是抽象层概念，其不限于进程、线程、协程，另外，多进程同步、互斥使用方式与<em>threading</em>模块下的同步机制大体类似，这里就不做过多叙述了。</p>
+
+<hr />
+
+<h4 id="日志">日志</h4>
+
+<p>标准库提供了<em>get_logger</em>用于配置<em>multiprocessing</em>模块记录日志，也可通过调用<em>log_to_stderr</em>将日志输出到终端:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="k">def</span> <span class="nf">worker</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Child Process done."</span><span class="p">)</span>
+
+<span class="n">multiprocessing</span><span class="p">.</span><span class="n">log_to_stderr</span><span class="p">(</span><span class="n">logging</span><span class="p">.</span><span class="n">DEBUG</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">worker</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">start</span><span class="p">()</span>
+<span class="n">p</span><span class="p">.</span><span class="n">join</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>输出如下：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">INFO/Process-1</span><span class="p">]</span><span class="w"> </span><span class="n">child</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="n">calling</span><span class="w"> </span><span class="n">self.run</span><span class="p">()</span><span class="w">
+</span><span class="n">Child</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="n">done.</span><span class="w">
+</span><span class="p">[</span><span class="n">INFO/Process-1</span><span class="p">]</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="n">shutting</span><span class="w"> </span><span class="n">down</span><span class="w">
+</span><span class="p">[</span><span class="n">DEBUG/Process-1</span><span class="p">]</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="s2">"atexit"</span><span class="w"> </span><span class="n">finalizers</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">priority</span><span class="w"> </span><span class="err">&gt;</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span><span class="p">[</span><span class="n">DEBUG/Process-1</span><span class="p">]</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">remaining</span><span class="w"> </span><span class="s2">"atexit"</span><span class="w"> </span><span class="n">finalizers</span><span class="w">
+</span><span class="p">[</span><span class="n">INFO/Process-1</span><span class="p">]</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="n">exiting</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">exitcode</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span><span class="p">[</span><span class="n">INFO/MainProcess</span><span class="p">]</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="n">shutting</span><span class="w"> </span><span class="n">down</span><span class="w">
+</span><span class="p">[</span><span class="n">DEBUG/MainProcess</span><span class="p">]</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="s2">"atexit"</span><span class="w"> </span><span class="n">finalizers</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">priority</span><span class="w"> </span><span class="err">&gt;</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span><span class="p">[</span><span class="n">DEBUG/MainProcess</span><span class="p">]</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">remaining</span><span class="w"> </span><span class="s2">"atexit"</span><span class="w"> </span><span class="n">finalizers</span><span class="w">
+</span></code></pre></div></div>
+
+:ET

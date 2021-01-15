@@ -1,0 +1,169 @@
+I"�A<h4 id="背景">背景</h4>
+
+<p>在实际的开发场景中，常常会遇到这样一类需求：服务A产生了某种类型的事件(比如用户注册、订单状态变更等)，其他依赖服务需要感知到该事件的发生，一般典型的做法就是服务A将对应的事件发布到某个topic下，其他需要关注该事件的服务订阅对应的topic即可，俗称Pub/Sub模式。</p>
+
+<p>构建于Django框架之上的项目，往往都存在多个应用，不同应用之间的事件通知就变得很重要了，Signal则是Django官方提供的一种事件管理器来帮助开发者更好的解藕事件发送方和事件接收方。</p>
+
+<h4 id="初窥">初窥</h4>
+
+<p>Signal类定义在Django源代码下dispatch/dispatcher.py模块中，对外提供5个方法：</p>
+
+<ol>
+  <li>
+    <p>Signal.connect(<em>receiver</em>, <em>sender=None</em>, <em>weak=True</em>, <em>dispatch_uid=None</em>)</p>
+  </li>
+  <li>
+    <p>Signal.disconnect(<em>receiver=None</em>, <em>sender=None</em>, <em>dispatch_uid=None</em>)</p>
+  </li>
+  <li>
+    <p>Signal.send(<em>sender</em>, <em>**kwargs</em>)</p>
+  </li>
+  <li>
+    <p>Signal.send_robust(<em>sender</em>, <em>**kwargs</em>)</p>
+  </li>
+  <li>
+    <p>Signal.has_listeners(self, sender=None)</p>
+  </li>
+</ol>
+
+<p>1、2方法可看成是一个对称的接口，主要用于连接、断开接收方；3、4方法用于发送方发送事件通知，两者的区别在于向某个接收方发送事件时，如果接收方处理对应的事件出现未捕获的异常，send方法继续向上抛出，而send_robust捕获异常并继续通知剩余的接收方；5方法见名知意。。。。</p>
+
+<p>了解了基本的接口使用，再来看看Signal是怎么做路由的。</p>
+
+<p>通常情况下，接收方只关注自己关心的事件，这在接收方注册到信号实例上可明确指出，稍微偷窥一下这部分实现的源代码:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">receiver</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">weak</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">dispatch_uid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="s">"""
+    Connect receiver to sender for signal.
+
+    Arguments:
+
+        receiver
+            A function or an instance method which is to receive signals.
+            Receivers must be hashable objects.
+
+            If weak is True, then receiver must be weak referenceable.
+
+            Receivers must be able to accept keyword arguments.
+
+            If a receiver is connected with a dispatch_uid argument, it
+            will not be added if another receiver was already connected
+            with that dispatch_uid.
+
+        sender
+            The sender to which the receiver should respond. Must either be
+            a Python object, or None to receive events from any sender.
+
+        weak
+            Whether to use weak references to the receiver. By default, the
+            module will attempt to use weak references to the receiver
+            objects. If this parameter is false, then strong references will
+            be used.
+
+        dispatch_uid
+            An identifier used to uniquely identify a particular instance of
+            a receiver. This will usually be a string, though it may be
+            anything hashable.
+    """</span>
+    <span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+
+    <span class="c1"># If DEBUG is on, check that we got a good receiver
+</span>    <span class="k">if</span> <span class="n">settings</span><span class="p">.</span><span class="n">configured</span> <span class="ow">and</span> <span class="n">settings</span><span class="p">.</span><span class="n">DEBUG</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">callable</span><span class="p">(</span><span class="n">receiver</span><span class="p">),</span> <span class="s">"Signal receivers must be callable."</span>
+
+        <span class="c1"># Check for **kwargs
+</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">func_accepts_kwargs</span><span class="p">(</span><span class="n">receiver</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"Signal receivers must accept keyword arguments (**kwargs)."</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dispatch_uid</span><span class="p">:</span>
+        <span class="n">lookup_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">dispatch_uid</span><span class="p">,</span> <span class="n">_make_id</span><span class="p">(</span><span class="n">sender</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lookup_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">_make_id</span><span class="p">(</span><span class="n">receiver</span><span class="p">),</span> <span class="n">_make_id</span><span class="p">(</span><span class="n">sender</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">weak</span><span class="p">:</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">weakref</span><span class="p">.</span><span class="n">ref</span>
+        <span class="n">receiver_object</span> <span class="o">=</span> <span class="n">receiver</span>
+        <span class="c1"># Check for bound methods
+</span>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="s">'__self__'</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="s">'__func__'</span><span class="p">):</span>
+            <span class="n">ref</span> <span class="o">=</span> <span class="n">WeakMethod</span>
+            <span class="n">receiver_object</span> <span class="o">=</span> <span class="n">receiver</span><span class="p">.</span><span class="n">__self__</span>
+        <span class="k">if</span> <span class="n">six</span><span class="p">.</span><span class="n">PY3</span><span class="p">:</span>
+            <span class="n">receiver</span> <span class="o">=</span> <span class="n">ref</span><span class="p">(</span><span class="n">receiver</span><span class="p">)</span>
+            <span class="n">weakref</span><span class="p">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">receiver_object</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">_remove_receiver</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">receiver</span> <span class="o">=</span> <span class="n">ref</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">_remove_receiver</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="p">.</span><span class="n">lock</span><span class="p">:</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">_clear_dead_receivers</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">r_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">receivers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">r_key</span> <span class="o">==</span> <span class="n">lookup_key</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">receivers</span><span class="p">.</span><span class="n">append</span><span class="p">((</span><span class="n">lookup_key</span><span class="p">,</span> <span class="n">receiver</span><span class="p">))</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">sender_receivers_cache</span><span class="p">.</span><span class="n">clear</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>从源代码中我们可以看出，Signal会为每一个receiver计算一个lookup_key，通过lookup_key标识对应的receiver，<strong>并且保证接收方唯一</strong> 。</p>
+
+<p>这大概就是接收方注册时，Signal内部做的事情；那再看看发送方发送时，Signal怎么做的路由。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sender</span><span class="p">,</span> <span class="o">**</span><span class="n">named</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">.</span><span class="n">receivers</span> <span class="ow">or</span> <span class="bp">self</span><span class="p">.</span><span class="n">sender_receivers_cache</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">sender</span><span class="p">)</span> <span class="ow">is</span> <span class="n">NO_RECEIVERS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="n">receiver</span><span class="p">(</span><span class="n">signal</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">sender</span><span class="p">,</span> <span class="o">**</span><span class="n">named</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">receiver</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">_live_receivers</span><span class="p">(</span><span class="n">sender</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_live_receivers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sender</span><span class="p">):</span>
+    <span class="n">receivers</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">use_caching</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">.</span><span class="n">_dead_receivers</span><span class="p">:</span>
+        <span class="n">receivers</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">sender_receivers_cache</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">sender</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">receivers</span> <span class="ow">is</span> <span class="n">NO_RECEIVERS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">receivers</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="p">.</span><span class="n">lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">_clear_dead_receivers</span><span class="p">()</span>
+            <span class="n">senderkey</span> <span class="o">=</span> <span class="n">_make_id</span><span class="p">(</span><span class="n">sender</span><span class="p">)</span>
+            <span class="n">receivers</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">receiverkey</span><span class="p">,</span> <span class="n">r_senderkey</span><span class="p">),</span> <span class="n">receiver</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">receivers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">r_senderkey</span> <span class="o">==</span> <span class="n">NONE_ID</span> <span class="ow">or</span> <span class="n">r_senderkey</span> <span class="o">==</span> <span class="n">senderkey</span><span class="p">:</span>
+                    <span class="n">receivers</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">receiver</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">use_caching</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">receivers</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="p">.</span><span class="n">sender_receivers_cache</span><span class="p">[</span><span class="n">sender</span><span class="p">]</span> <span class="o">=</span> <span class="n">NO_RECEIVERS</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="p">.</span><span class="n">sender_receivers_cache</span><span class="p">[</span><span class="n">sender</span><span class="p">]</span> <span class="o">=</span> <span class="n">receivers</span>
+    <span class="n">non_weak_receivers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">receiver</span> <span class="ow">in</span> <span class="n">receivers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="n">weakref</span><span class="p">.</span><span class="n">ReferenceType</span><span class="p">):</span>
+            <span class="n">receiver</span> <span class="o">=</span> <span class="n">receiver</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">receiver</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">non_weak_receivers</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">receiver</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">non_weak_receivers</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">receiver</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">non_weak_receivers</span>
+</code></pre></div></div>
+
+<p>从_live_receiver方法中，很容易看出路由规则：比较接收方与发送方对应的lookup_key是否相同即可(例外情况：接受方注册时可以不明确指定sender，意味着它接受所有的事件通知，也就是上述源码中的<strong>r_senderkey == NONE_ID</strong> )</p>
+
+<p>另外，Django内部提供了一组内建信号，便于业务层接受框架层的事件通知，支持的<a href="https://docs.djangoproject.com/en/1.11/ref/signals/">内建信号列表</a></p>
+
+<h4 id="使用">使用</h4>
+
+<p>这里我就不举使用例子了，简单说一下Signal的使用实践:</p>
+
+<ul>
+  <li>APP目录下signals.py模块定义信号</li>
+  <li>APP目录下的apps.py文件，在AppConfig子类ready方法中注册接受方，不然有可能会收不到对应的事件</li>
+  <li>send方法是同步调用</li>
+</ul>
+
+<h4 id="结束语">结束语</h4>
+
+<p>刚开始看Signal时，理解起来并没有想象中的那么顺，后面理解了才发现原因：之前使用的Pub/Sub模式都是<strong>Pull模型</strong> ,而Signal使用的却是<strong>Push模型</strong>，两者之间的差异在于<strong>Push模型可以做调度</strong></p>
+:ET

@@ -1,0 +1,98 @@
+I"M-<p>有时，为了验证一些想法，比如keep-alive具体行为、协程调度器调度算法等，需要一个简易的<strong><em>HTTPServer</em></strong>帮助我们快速验证此类想法，这里简单罗列了几种方法供以后参考。</p>
+
+<p><strong><em>Python</em></strong>标准库提供了一个简单的命令来实现文件目录共享的<strong><em>HTTPServer</em></strong>，终端运行命令<code class="language-plaintext highlighter-rouge">python -m SimpleHTTPServer</code>，会得到如下信息：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Serving</span><span class="w"> </span><span class="nx">HTTP</span><span class="w"> </span><span class="nx">on</span><span class="w"> </span><span class="nx">0.0.0.0</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="nx">8000</span><span class="w"> </span><span class="o">...</span><span class="w">
+</span></code></pre></div></div>
+
+<p>在浏览器中访问<code class="language-plaintext highlighter-rouge">8000</code>端口，会看到运行命令的目录结构及文件，这在局域网中可快速共享文件。</p>
+
+<p>另外，在<code class="language-plaintext highlighter-rouge">Python 3.x</code>中，<code class="language-plaintext highlighter-rouge">SimpleHTTPServer</code>移动到了<code class="language-plaintext highlighter-rouge">http.server</code>模块下，运行命令变为<code class="language-plaintext highlighter-rouge">python3 -m http.server</code></p>
+
+<p>如果需要自定义请求处理的逻辑，可通过下面的代码实现（<code class="language-plaintext highlighter-rouge">Python 2.x</code>）:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">BaseHTTPServer</span> <span class="kn">import</span> <span class="n">BaseHTTPRequestHandler</span><span class="p">,</span> <span class="n">HTTPServer</span>
+
+
+<span class="k">class</span> <span class="nc">TestHandler</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">do_GET</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="s">"&lt;h1&gt;Hello,SkyMemory&lt;/h1&gt;"</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_header</span><span class="p">(</span><span class="s">'Content-Type'</span><span class="p">,</span> <span class="s">'text/html'</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">end_headers</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">wfile</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="s">'HTTP/1.0'</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="mi">8000</span>
+    <span class="n">BaseHTTPRequestHandler</span><span class="p">.</span><span class="n">protocol_version</span> <span class="o">=</span> <span class="n">protocol</span>
+    <span class="n">httpd</span> <span class="o">=</span> <span class="n">HTTPServer</span><span class="p">((</span><span class="s">''</span><span class="p">,</span> <span class="n">port</span><span class="p">),</span> <span class="n">TestHandler</span><span class="p">)</span>
+    <span class="n">sa</span> <span class="o">=</span> <span class="n">httpd</span><span class="p">.</span><span class="n">socket</span><span class="p">.</span><span class="n">getsockname</span><span class="p">()</span>
+    <span class="k">print</span> <span class="s">"Serving HTTP on"</span><span class="p">,</span> <span class="n">sa</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">"port"</span><span class="p">,</span> <span class="n">sa</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"..."</span>
+    <span class="n">httpd</span><span class="p">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">test</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>标准库提供的<code class="language-plaintext highlighter-rouge">HTTPServer</code>通过<code class="language-plaintext highlighter-rouge">do_method</code>方式来定义请求处理逻辑。</p>
+
+<p>另外，有时需要<code class="language-plaintext highlighter-rouge">HTTPServer</code>支持并发，针对这点，<code class="language-plaintext highlighter-rouge">Python 2.x</code>中暂时想到的办法是通过<code class="language-plaintext highlighter-rouge">uwsgi</code>，<code class="language-plaintext highlighter-rouge">Python 3.x</code>中有更好的方法，后面会提到。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># test.py
+</span><span class="k">def</span> <span class="nf">application</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">[(</span><span class="s">'Content-Type'</span><span class="p">,</span> <span class="s">'text/html'</span><span class="p">)]</span>
+    <span class="n">start_response</span><span class="p">(</span><span class="s">"200 OK"</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">"&lt;h1&gt;Hello,SkyMemory&lt;/h1&gt;"</span>
+</code></pre></div></div>
+
+<p>运行命令<code class="language-plaintext highlighter-rouge">uwsgi --http :8000 -p 4 --wsgi-file test.py</code>即可得到一个简易、支持并发的<code class="language-plaintext highlighter-rouge">HTTPServer</code>，具体使用哪种并发模式就看个人所需。</p>
+
+<p>在<code class="language-plaintext highlighter-rouge">Python 3.x中</code>，标准库提供了一个支持并发处理的<code class="language-plaintext highlighter-rouge">ThreadingHTTPServer</code>，具体使用方法:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">http.server</span> <span class="kn">import</span> <span class="n">ThreadingHTTPServer</span><span class="p">,</span> <span class="n">BaseHTTPRequestHandler</span>
+
+
+<span class="k">class</span> <span class="nc">TestHandler</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">do_GET</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s">'name'</span><span class="p">:</span> <span class="s">'SkyMemory'</span><span class="p">,</span>
+            <span class="s">'address'</span><span class="p">:</span> <span class="s">'Beijing'</span><span class="p">,</span>
+        <span class="p">})</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_header</span><span class="p">(</span><span class="s">'Content-type'</span><span class="p">,</span> <span class="s">'application/json'</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">end_headers</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">wfile</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">encode</span><span class="p">())</span>
+
+
+<span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="s">'HTTP/1.0'</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="mi">8000</span>
+    <span class="n">TestHandler</span><span class="p">.</span><span class="n">protocol_version</span> <span class="o">=</span> <span class="n">protocol</span>
+    <span class="n">httpd</span> <span class="o">=</span> <span class="n">ThreadingHTTPServer</span><span class="p">((</span><span class="s">''</span><span class="p">,</span> <span class="n">port</span><span class="p">),</span> <span class="n">TestHandler</span><span class="p">)</span>
+    <span class="n">sa</span> <span class="o">=</span> <span class="n">httpd</span><span class="p">.</span><span class="n">socket</span><span class="p">.</span><span class="n">getsockname</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Serving HTTP on"</span><span class="p">,</span> <span class="n">sa</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">"port"</span><span class="p">,</span> <span class="n">sa</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"..."</span><span class="p">)</span>
+    <span class="n">httpd</span><span class="p">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">test</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+:ET

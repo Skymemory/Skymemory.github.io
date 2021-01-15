@@ -1,0 +1,253 @@
+I"�a<p>itertools算得上是Python中比较常用的一个模块，它主要提供了操作在可迭代对象上的一些实用函数，这篇文章主要介绍这些函数的基本等价实现与一些使用心得.(Python Version:3.6.3)</p>
+
+<h4 id="cycle">cycle</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">cycle</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>
+    <span class="c1"># cycle('ABCD') ---&gt; A B C D A B C D A B C D...
+</span>    <span class="n">saved</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">item</span>
+        <span class="n">saved</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">saved</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">saved</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">item</span>
+</code></pre></div></div>
+<p>使用例子：基于cycle实现的Round-Robin负载均衡</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">RoundRobinSelector</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hosts</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">hosts</span> <span class="o">=</span> <span class="n">hosts</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">_it</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">hosts</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">_it</span><span class="p">)</span>
+</code></pre></div></div>
+<p>之前去知乎面试，考过手写cycle的实现。。。。另外，cycle使用中有个地方需要注意，它需要额外的空间来存储，所以当输入集太大时，最好自己用取模实现类似的功能</p>
+
+<hr />
+
+<h4 id="count">count</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># count(10) ---&gt; 0 1 2 3 4 5 6...
+</span>    <span class="c1"># count(2.5, 0.5) ---&gt; 2.5 3 3.5...
+</span>    <span class="n">n</span> <span class="o">=</span> <span class="n">start</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">n</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="n">step</span>
+</code></pre></div></div>
+
+<hr />
+
+<h4 id="repeat">repeat</h4>
+<p>基本等价实现：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">repeat</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">times</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">o</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">o</span>
+</code></pre></div></div>
+
+<p>使用例子：
+    repeat函数主要用在一些需要常量序列的地方，比如对一个序列求平方—map(pow, range(5), repeat(2))</p>
+
+<hr />
+
+<h4 id="compress">compress</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">selectors</span><span class="p">):</span>
+    <span class="c1"># compress('ABCDED', [1, 0, 1, 0, 0, 0]) ---&gt; A C
+</span>    <span class="k">return</span> <span class="p">(</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">selectors</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="p">)</span>
+</code></pre></div></div>
+<hr />
+
+<h4 id="filterfalse">filterfalse</h4>
+<p>基本等价实现：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">filterfalse</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">pred</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="nb">bool</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pred</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">pred</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="nb">bool</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="n">pred</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p>filterfalse配合内置函数filter可用于对输入集通过谓词(predicate)进行分组，对得到的序列可用于不同业务逻辑的处理</p>
+
+<hr />
+
+<h4 id="takewhile">takewhile</h4>
+<p>基本等价实现：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">takewhile</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pred</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">item</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+</code></pre></div></div>
+
+<p>用于得到一个符合条件的前缀序列</p>
+
+<hr />
+
+<h4 id="dropwhile">dropwhile</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">dropwhile</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
+    <span class="c1"># dropwhile(lambda x: x &lt; 5, [1, 4, 6, 4, 1]) ---&gt; 6 4 1
+</span>    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pred</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">item</span>
+            <span class="k">break</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">item</span>
+</code></pre></div></div>
+<p>用于得到一个符合条件的后缀序列</p>
+
+<hr />
+
+<h4 id="chain">chain</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">iterables</span><span class="p">):</span>
+    <span class="c1"># chain('ABC', 'DEF') --&gt; A B C D E F
+</span>    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">iterables</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">element</span>
+</code></pre></div></div>
+<p>用于将连续的多个序列当成单个序列处理</p>
+
+<hr />
+<h4 id="chainfrom_iterable">chain.from_iterable</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">from_iterable</span><span class="p">(</span><span class="n">iterables</span><span class="p">):</span>
+    <span class="c1"># chain.from_iterable(['ABC', 'DEF']) --&gt; A B C D E F
+</span>    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">iterables</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">element</span>
+</code></pre></div></div>
+
+<p>跟chain类似，唯一的区别在于，chain.from_iterable不用事先知道iterables的长度，而chain则需要</p>
+
+<hr />
+
+<h4 id="islice">islice</h4>
+
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">islice</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="c1"># islice('ABCDEFG', 2) --&gt; A B
+</span>    <span class="c1"># islice('ABCDEFG', 2, 4) --&gt; C D
+</span>    <span class="c1"># islice('ABCDEFG', 2, None) --&gt; C D E F G
+</span>    <span class="c1"># islice('ABCDEFG', 0, None, 2) --&gt; A C E G
+</span>    <span class="n">s</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">stop</span> <span class="ow">or</span> <span class="n">sys</span><span class="p">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">step</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">nexti</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+    <span class="k">except</span> <span class="nb">StopIteration</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">nexti</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">element</span>
+            <span class="n">nexti</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+</code></pre></div></div>
+<p>该函数主要作用有如下两个：</p>
+
+<ul>
+  <li>
+    <p>从一定程度上避免了常规切片带来的内存复制问题，同时也带来了另外一个问题，切片的时间复杂度增为O(n)，使用时，需要自己权衡一下</p>
+  </li>
+  <li>
+    <p>提供了generator切片，但start、stop参数不支持负数，需注意该限制</p>
+  </li>
+</ul>
+
+<hr />
+
+<h4 id="accumulate">accumulate</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">accumulate</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">operator</span><span class="p">.</span><span class="n">add</span><span class="p">):</span>
+    <span class="s">'Return running totals'</span>
+    <span class="c1"># accumulate([1,2,3,4,5]) --&gt; 1 3 6 10 15
+</span>    <span class="c1"># accumulate([1,2,3,4,5], operator.mul) --&gt; 1 2 6 24 120
+</span>    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+    <span class="k">except</span> <span class="nb">StopIteration</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">yield</span> <span class="n">total</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">element</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">total</span>
+</code></pre></div></div>
+
+<p>该函数与functools.reduce类似，唯一区别在于，functools.reduce只返回最终计算的值，而accumulate返回了每步计算的值，通过accumulate函数，我们很容易得出前缀相关的性质，如前缀和、前缀积、前缀最值等</p>
+
+<hr />
+
+<h4 id="zip_longest">zip_longest</h4>
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">ZipExhausted</span><span class="p">(</span><span class="nb">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="c1"># zip_longest('ABCD', 'xy', fillvalue='-') --&gt; ('A', 'x'), ('B', 'y'), ('C', '-'), ('D', '-')
+</span>    <span class="n">fillvalue</span> <span class="o">=</span> <span class="n">kwds</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'fillvalue'</span><span class="p">)</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">def</span> <span class="nf">sentinel</span><span class="p">():</span>
+        <span class="k">nonlocal</span> <span class="n">counter</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">counter</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ZipExhausted</span>
+        <span class="n">counter</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">yield</span> <span class="n">fillvalue</span>
+    <span class="n">fillers</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span><span class="n">fillvalue</span><span class="p">)</span>
+    <span class="n">iterators</span> <span class="o">=</span> <span class="p">[</span><span class="n">chain</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">sentinel</span><span class="p">(),</span> <span class="n">fillers</span><span class="p">)</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">iterators</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">next</span><span class="p">,</span> <span class="n">iterators</span><span class="p">))</span>
+    <span class="k">except</span> <span class="n">ZipExhausted</span><span class="p">:</span>
+        <span class="k">pass</span>
+</code></pre></div></div>
+<p>内置函数zip当参数序列长度不等时，选择最短序列的长度做为最终结果的长度，而zip_longest刚好与其相反，选择最长序列长度做为最终结果长度，而不及最长长度的序列，可通过fillvalue指定填充值</p>
+
+<hr />
+
+<h4 id="groupby">groupby</h4>
+
+<p>基本等价实现:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">groupby</span><span class="p">:</span>
+    <span class="c1"># [k for k, g in groupby('AAAABBBCCDAABBB')] --&gt; A B C D A B
+</span>    <span class="c1"># [list(g) for k, g in groupby('AAAABBBCCD')] --&gt; AAAA BBB CC D
+</span>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">keyfunc</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">tgtkey</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+    <span class="k">def</span> <span class="nf">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span> <span class="o">==</span> <span class="bp">self</span><span class="p">.</span><span class="n">tgtkey</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">it</span><span class="p">)</span>    <span class="c1"># Exit on StopIteration
+</span>            <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">keyfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">tgtkey</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">currkey</span><span class="p">,</span> <span class="bp">self</span><span class="p">.</span><span class="n">_grouper</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">tgtkey</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">_grouper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tgtkey</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span> <span class="o">==</span> <span class="n">tgtkey</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">it</span><span class="p">)</span>
+            <span class="k">except</span> <span class="nb">StopIteration</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="p">.</span><span class="n">currkey</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">keyfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">currvalue</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>通过指定key函数，对可迭代对象进行分组，分组的依据为相邻元素是否相等来决定是否属于同一个组，这与SQL中的Group By处理方式不同，使用时需要额外注意</p>
+
+<h4 id="参考资料">参考资料</h4>
+
+<ul>
+  <li><a href="https://docs.python.org/3.6/library/itertools.html">itertools</a></li>
+</ul>
+:ET

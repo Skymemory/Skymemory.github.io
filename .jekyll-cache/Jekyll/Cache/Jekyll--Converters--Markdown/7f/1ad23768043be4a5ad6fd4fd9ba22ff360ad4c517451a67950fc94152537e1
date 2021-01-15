@@ -1,0 +1,56 @@
+I"�<p>最近看<code class="language-plaintext highlighter-rouge">redis-py</code>源代码时，发现其支持<code class="language-plaintext highlighter-rouge">Redis</code>自身事务特性，就顺带整理了下相关的知识，这里做简述记录。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Redis</code>事务与传统关系型数据库中的事务略有不同，它的事务提供两个保障：</p>
+
+<ul>
+  <li>事务中的命令顺序执行，并且在执行当前事务期间，不会有其他客户端命令穿插进来，这点与它提供的<code class="language-plaintext highlighter-rouge">pipeline</code>功能存在差异：<code class="language-plaintext highlighter-rouge">pipeline</code>中的命令是有可能穿插其他客户端的命令混合执行的。</li>
+  <li>事务中的命令要么全部执行要么都不执行，但这里面有些特殊场景，当使用<code class="language-plaintext highlighter-rouge">AOF</code>持久化方式时，<code class="language-plaintext highlighter-rouge">Redis</code>事务有可能会出现部分执行状态，比如说事务执行期间断电、人为<code class="language-plaintext highlighter-rouge">shutdown</code>等，<code class="language-plaintext highlighter-rouge">Redis</code>并没有采用类似<code class="language-plaintext highlighter-rouge">log</code>写成功后才执行事务方式，故而有可能导致事务执行期间挂掉恢复后状态不一致，这点可以通过<code class="language-plaintext highlighter-rouge">redis-check-aof</code>命令来检查。</li>
+</ul>
+
+<h4 id="错误处理机制">错误处理机制</h4>
+
+<p>事务中的命令会放到类似队列的数据结构中，直到客户端发送<code class="language-plaintext highlighter-rouge">exec</code>命令，此时服务端顺序执行队列中的命令。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Redis</code>会在命令入队时，做一定的前置检查(比如参数是否正确等)，此时若发现命令有问题，会返回客户端错误。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Redis</code>在事务执行期间，若发现某条命令有问题会记录对应命令执行的错误信息，然后继续执行剩下的命令。</p>
+
+<h4 id="watch">WATCH</h4>
+
+<p><code class="language-plaintext highlighter-rouge">Redis</code>除了提供基本事务操作命令<code class="language-plaintext highlighter-rouge">MULTI</code>、<code class="language-plaintext highlighter-rouge">DISCARD</code>、<code class="language-plaintext highlighter-rouge">EXEC</code>外，还提供了另外一个事务相关的命令——<code class="language-plaintext highlighter-rouge">WATCH</code>，<code class="language-plaintext highlighter-rouge">WATCH</code>主要作用在于配合<code class="language-plaintext highlighter-rouge">Redis</code>事务实现类似<code class="language-plaintext highlighter-rouge">CAS</code>逻辑。</p>
+
+<p>比如，<code class="language-plaintext highlighter-rouge">incr</code>命令基于<code class="language-plaintext highlighter-rouge">WATCH</code>实现方式:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>WATCH mykey
+val <span class="o">=</span> GET mykey
+val <span class="o">=</span> val + 1
+MULTI
+SET mykey <span class="nv">$val</span>
+EXEC
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">WATCH</code>会监听指定键变更操作，然后在事务执行期间根据是否产生变更来决定事务是否执行。</p>
+
+<p>基于<code class="language-plaintext highlighter-rouge">Python</code>客户端实现<code class="language-plaintext highlighter-rouge">INCR</code>命令:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">redis</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">WatchError</span>
+
+<span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">StrictRedis</span><span class="p">()</span>
+<span class="n">name</span> <span class="o">=</span> <span class="s">'counter'</span>
+<span class="k">with</span> <span class="n">r</span><span class="p">.</span><span class="n">pipeline</span><span class="p">(</span><span class="n">transaction</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">pipe</span><span class="p">:</span>
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># startup immediately execute mode.
+</span>            <span class="n">pipe</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">old</span> <span class="o">=</span> <span class="n">pipe</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">old</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">pipe</span><span class="p">.</span><span class="n">multi</span><span class="p">()</span>
+            <span class="n">pipe</span><span class="p">.</span><span class="nb">set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+            <span class="n">pipe</span><span class="p">.</span><span class="n">execute</span><span class="p">()</span>
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="n">WatchError</span><span class="p">:</span>
+            <span class="k">continue</span>
+</code></pre></div></div>
+
+:ET

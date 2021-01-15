@@ -1,0 +1,313 @@
+I"�<p>容器是应用层的抽象，它将代码和依赖关系打包在一起，多个容器可以在同一台机器上运行，并与其他容器共享操作系统内核，每个容器在用户空间中作为独立进程运行。</p>
+
+<p>如果将容器抽象成一种概念，那么<code class="language-plaintext highlighter-rouge">Docker</code>便是这种概念的一种实现方式。</p>
+
+<p>根据官方文档的介绍，<code class="language-plaintext highlighter-rouge">Docker</code>具备如下特点：</p>
+
+<ul>
+  <li><strong>轻量</strong>：在一台机器上运行的多个Docker容器，可以共享这台机器的操作系统内核，它们能够迅速启动，只需占用很少的计算和内存资源。</li>
+  <li><strong>标准</strong>：Docker容器基于开放式标准，能够在所有主流Linux版本、Microsoft Windows以及包括VM、裸机服务器和云在内的任何基础设施上运行。</li>
+  <li><strong>安全</strong>：Docker赋予应用的隔离性不仅限于彼此隔离，还独立于底层的基础设施。Docker默认提供最强的隔离，因此应用出现问题，也只是单个容器的问题，而不会波及到整台机器。</li>
+</ul>
+
+<p>不过，对于普通开发者来说，更看重的是它提供的环境隔离功能。</p>
+
+<hr />
+
+<h4 id="基本概念">基本概念</h4>
+
+<p><code class="language-plaintext highlighter-rouge">Docker</code>是基于<strong><code class="language-plaintext highlighter-rouge">C/S</code></strong>架构的程序，通过使用<code class="language-plaintext highlighter-rouge">API</code>方式管理容器，基本架构：</p>
+
+<p><img src="/img/2019/04/03/01/01.png" alt="" /></p>
+
+<p><strong>镜像</strong>类似一个引导文件系统，容器运行离不开镜像。</p>
+
+<p><strong>容器</strong>更像是系统中某个进程，但与直接在宿主执行的进程不同，容器进程运行于属于自己的独立命名空间。</p>
+
+<p>镜像与容器的关系，就像是程序设计中的类与实例一样。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Registry</code>是<code class="language-plaintext highlighter-rouge">Docker</code>用来管理镜像的仓库，如著名的官方仓库<a href="https://hub.docker.com/">Docker Hub</a>。</p>
+
+<hr />
+
+<h4 id="基本使用">基本使用</h4>
+
+<p>安装好<code class="language-plaintext highlighter-rouge">Docker</code>之后，便可以通过命令<code class="language-plaintext highlighter-rouge">docker</code>来操作对应的镜像、容器等。</p>
+
+<p>拉取<code class="language-plaintext highlighter-rouge">ubuntu</code>镜像：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">pull</span><span class="w"> </span><span class="nx">ubuntu:latest</span><span class="w">
+</span><span class="n">latest:</span><span class="w"> </span><span class="nx">Pulling</span><span class="w"> </span><span class="nx">from</span><span class="w"> </span><span class="nx">library/ubuntu</span><span class="w">
+</span><span class="mi">898</span><span class="n">c46f3b1a1:</span><span class="w"> </span><span class="nx">Pull</span><span class="w"> </span><span class="nx">complete</span><span class="w">
+</span><span class="mi">63366</span><span class="n">dfa0a50:</span><span class="w"> </span><span class="nx">Pull</span><span class="w"> </span><span class="nx">complete</span><span class="w">
+</span><span class="mi">041</span><span class="n">d4cd74a92:</span><span class="w"> </span><span class="nx">Pull</span><span class="w"> </span><span class="nx">complete</span><span class="w">
+</span><span class="mi">6</span><span class="n">e1bee0f8701:</span><span class="w"> </span><span class="nx">Pull</span><span class="w"> </span><span class="nx">complete</span><span class="w">
+</span><span class="n">Digest:</span><span class="w"> </span><span class="nx">sha256:017eef0b616011647b269b5c65826e2e2ebddbe5d1f8c1e56b3599fb14fabec8</span><span class="w">
+</span><span class="n">Status:</span><span class="w"> </span><span class="nx">Downloaded</span><span class="w"> </span><span class="nx">newer</span><span class="w"> </span><span class="nx">image</span><span class="w"> </span><span class="nx">for</span><span class="w"> </span><span class="nx">ubuntu:latest</span><span class="w">
+</span></code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">pull</code>子命令可用于拉取仓库或镜像，仓库下可以存在多个镜像，若需明确拉取某个仓库下的某个镜像，可通过增加<code class="language-plaintext highlighter-rouge">:[tag]</code>方式明确具体的镜像。</p>
+
+<p>关于镜像操作常用命令：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docker search name</code>：搜索<code class="language-plaintext highlighter-rouge">Registry</code>下匹配<code class="language-plaintext highlighter-rouge">name</code>的仓库或镜像，<code class="language-plaintext highlighter-rouge">Docker Hub</code>提供网页搜索功能</li>
+  <li><code class="language-plaintext highlighter-rouge">docker rmi image_name</code>：删除image_name镜像</li>
+  <li><code class="language-plaintext highlighter-rouge">docker images</code>：列出所有镜像</li>
+</ul>
+
+<p>有了镜像，接下来便是启动对应的容器，启动<code class="language-plaintext highlighter-rouge">ubuntu</code>容器：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="nt">-d</span><span class="w"> </span><span class="nt">--name</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nt">-it</span><span class="w"> </span><span class="nx">ubuntu:latest</span><span class="w"> </span><span class="nx">/bin/bash</span><span class="w">
+</span><span class="n">b633e8c2adeca72822b8a90fff660b25276cf8df6b67949961063086509bebb2</span><span class="w">
+</span></code></pre></div></div>
+
+<p>执行完对应的命令后，如果执行成功，会得到如上所示的一个16进制串，该字符串唯一标识了该容器。</p>
+
+<p>选项说明：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">-d</code>：表示容器后台运行</li>
+  <li><code class="language-plaintext highlighter-rouge">--name</code>：指定容器名称，容器名称或容器ID都可唯一表示一个容器实例</li>
+  <li><code class="language-plaintext highlighter-rouge">-it</code>：保证容器中<code class="language-plaintext highlighter-rouge">STDIN</code>开启并分配一个伪<code class="language-plaintext highlighter-rouge">tty</code></li>
+</ul>
+
+<p>容器创建后，即可通过<code class="language-plaintext highlighter-rouge">docker ps -a</code>查看容器状态：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">ps</span><span class="w"> </span><span class="nt">-a</span><span class="w">
+</span><span class="n">CONTAINER</span><span class="w"> </span><span class="nx">ID</span><span class="w">        </span><span class="nx">IMAGE</span><span class="w">               </span><span class="nx">COMMAND</span><span class="w">             </span><span class="nx">CREATED</span><span class="w">             </span><span class="nx">STATUS</span><span class="w">              </span><span class="nx">PORTS</span><span class="w">               </span><span class="nx">NAMES</span><span class="w">
+</span><span class="n">b633e8c2adec</span><span class="w">        </span><span class="nx">ubuntu:latest</span><span class="w">       </span><span class="s2">"/bin/bash"</span><span class="w">         </span><span class="nx">10</span><span class="w"> </span><span class="nx">minutes</span><span class="w"> </span><span class="nx">ago</span><span class="w">      </span><span class="nx">Up</span><span class="w"> </span><span class="nx">10</span><span class="w"> </span><span class="nx">minutes</span><span class="w">                           </span><span class="nx">ubuntu</span><span class="w">
+</span></code></pre></div></div>
+
+<p>我们也可以通过<code class="language-plaintext highlighter-rouge">docker top ubuntu</code>查看容器内的进程：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">top</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w">
+</span><span class="n">PID</span><span class="w">                 </span><span class="nx">USER</span><span class="w">                </span><span class="nx">TIME</span><span class="w">                </span><span class="nx">COMMAND</span><span class="w">
+</span><span class="mi">16922</span><span class="w">               </span><span class="n">root</span><span class="w">                </span><span class="nx">0:00</span><span class="w">                </span><span class="nx">/bin/bash</span><span class="w">
+</span></code></pre></div></div>
+
+<p>容器运行起来后，可通过<code class="language-plaintext highlighter-rouge">docker exec</code>子命令进入容器内：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">exec</span><span class="w"> </span><span class="nt">-it</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nx">/bin/bash</span><span class="w">
+</span><span class="n">root</span><span class="err">@</span><span class="nx">b633e8c2adec:/</span><span class="c">#</span><span class="w">
+</span></code></pre></div></div>
+
+<p>此时的ubuntu容器是个精简版的ubuntu系统，不过，大多数情况下还是能正常安装需要软件：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">exec</span><span class="w"> </span><span class="nt">-it</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nx">/bin/bash</span><span class="w">
+</span><span class="n">root</span><span class="err">@</span><span class="nx">b633e8c2adec:/</span><span class="c"># apt-get update &amp;&amp; apt-get install -y redis</span><span class="w">
+</span><span class="n">Get:1</span><span class="w"> </span><span class="nx">http://archive.ubuntu.com/ubuntu</span><span class="w"> </span><span class="nx">bionic</span><span class="w"> </span><span class="nx">InRelease</span><span class="w"> </span><span class="p">[</span><span class="mi">242</span><span class="w"> </span><span class="n">kB</span><span class="p">]</span><span class="w">
+</span><span class="n">Get:2</span><span class="w"> </span><span class="nx">http://security.ubuntu.com/ubuntu</span><span class="w"> </span><span class="nx">bionic-security</span><span class="w"> </span><span class="nx">InRelease</span><span class="w"> </span><span class="p">[</span><span class="mf">88.7</span><span class="w"> </span><span class="n">kB</span><span class="p">]</span><span class="w">
+</span><span class="n">Get:3</span><span class="w"> </span><span class="nx">http://security.ubuntu.com/ubuntu</span><span class="w"> </span><span class="nx">bionic-security/restricted</span><span class="w"> </span><span class="nx">amd64</span><span class="w"> </span><span class="nx">Packages</span><span class="w"> </span><span class="p">[</span><span class="mi">5436</span><span class="w"> </span><span class="n">B</span><span class="p">]</span><span class="w">
+</span><span class="n">Get</span><span class="p">:</span><span class="mi">4</span><span class="w"> </span><span class="n">http</span><span class="p">:</span><span class="n">//archive.ubuntu.com/ubuntu</span><span class="w"> </span><span class="nx">bionic-updates</span><span class="w"> </span><span class="nx">InRelease</span><span class="w"> </span><span class="p">[</span><span class="mf">88.7</span><span class="w"> </span><span class="n">kB</span><span class="p">]</span><span class="w">
+</span><span class="o">...........</span><span class="w">
+</span><span class="n">invoke</span><span class="nt">-rc</span><span class="o">.</span><span class="nf">d</span><span class="p">:</span><span class="w"> </span><span class="n">could</span><span class="w"> </span><span class="n">not</span><span class="w"> </span><span class="n">determine</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="n">runlevel</span><span class="w">
+</span><span class="n">invoke</span><span class="nt">-rc</span><span class="o">.</span><span class="nf">d</span><span class="p">:</span><span class="w"> </span><span class="n">policy</span><span class="nt">-rc</span><span class="o">.</span><span class="nf">d</span><span class="w"> </span><span class="n">denied</span><span class="w"> </span><span class="n">execution</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">start.</span><span class="w">
+</span><span class="n">Setting</span><span class="w"> </span><span class="n">up</span><span class="w"> </span><span class="n">redis</span><span class="w"> </span><span class="p">(</span><span class="mi">5</span><span class="p">:</span><span class="mf">4.0</span><span class="o">.</span><span class="nf">9-1ubuntu0</span><span class="o">.</span><span class="nf">1</span><span class="p">)</span><span class="w"> </span><span class="o">...</span><span class="w">
+</span></code></pre></div></div>
+
+<p>常见操作容器命令：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">docker start container_name</code>：启动<code class="language-plaintext highlighter-rouge">container_name</code>容器</li>
+  <li><code class="language-plaintext highlighter-rouge">docker stop container_name</code>：停止<code class="language-plaintext highlighter-rouge">container_name</code>容器</li>
+  <li><code class="language-plaintext highlighter-rouge">docker rm container_name</code>：删除<code class="language-plaintext highlighter-rouge">container_name</code>容器</li>
+  <li><code class="language-plaintext highlighter-rouge">docker cp</code>：用于拷贝宿主机和容器之间的文件或文件夹</li>
+  <li><code class="language-plaintext highlighter-rouge">docker logs</code>：查看容器日志</li>
+  <li><code class="language-plaintext highlighter-rouge">docker inspect</code>：查看容器更详细的信息</li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">docker</code>提供的子命令基本上都可通过<code class="language-plaintext highlighter-rouge">docker subcommand -h</code>方式查看对应的帮助文档。</p>
+
+<p>上面说了这么多，不过貌似看上去没啥用。。。。不急，现在才刚刚开始。</p>
+
+<hr />
+
+<h4 id="dockerfile">Dockerfile</h4>
+
+<p>容器的运行离不开镜像，上面例子中使用的都是别人制作好的镜像，如果有自定义镜像的需求呢，比想在某个容器内运行一个<code class="language-plaintext highlighter-rouge">Python</code>程序？</p>
+
+<p><code class="language-plaintext highlighter-rouge">Docker</code>提供了两种方式构建镜像：</p>
+
+<ul>
+  <li>使用<code class="language-plaintext highlighter-rouge">docker commit</code>命令</li>
+  <li>使用<code class="language-plaintext highlighter-rouge">docker build</code>和<code class="language-plaintext highlighter-rouge">Dockerfile</code>文件</li>
+</ul>
+
+<p>运行<code class="language-plaintext highlighter-rouge">docker exec -it ubuntu /bin/bash</code>命令，安装<code class="language-plaintext highlighter-rouge">vim</code>、<code class="language-plaintext highlighter-rouge">python3-dev</code>:</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">exec</span><span class="w"> </span><span class="nt">-it</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nx">/bin/bash</span><span class="w">
+</span><span class="n">root</span><span class="err">@</span><span class="nx">b633e8c2adec:/</span><span class="c"># apt-get install -y vim &amp;&amp; apt-get install -y python3-dev</span><span class="w">
+</span></code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">/</code>目录下添加<code class="language-plaintext highlighter-rouge">test.py</code>文件:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">http.server</span> <span class="kn">import</span> <span class="n">HTTPServer</span><span class="p">,</span> <span class="n">BaseHTTPRequestHandler</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="k">class</span> <span class="nc">Handler</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">do_GET</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">send_header</span><span class="p">(</span><span class="s">'Content-type'</span><span class="p">,</span> <span class="s">'application/json'</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">end_headers</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">wfile</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s">'host'</span><span class="p">:</span> <span class="s">"localhost"</span><span class="p">,</span>
+            <span class="s">"message"</span><span class="p">:</span> <span class="s">"This is a dockerfile test."</span>
+        <span class="p">}).</span><span class="n">encode</span><span class="p">())</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">HTTPServer</span><span class="p">((</span><span class="s">'0.0.0.0'</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span> <span class="n">Handler</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"server starting....."</span><span class="p">)</span>
+    <span class="n">server</span><span class="p">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>退出容器，执行如下命令：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">docker</span><span class="w"> </span><span class="nx">commit</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nx">skymemory/demo:0.1</span><span class="w">
+</span><span class="n">sha256:b6396664ec770be583973ef0e09754be000ea6d14ff1dc76feedaacccb6514ce</span><span class="w">
+</span><span class="err">➜</span><span class="w">  </span><span class="nx">docker</span><span class="w"> </span><span class="nx">images</span><span class="w">
+</span><span class="n">REPOSITORY</span><span class="w">                 </span><span class="nx">TAG</span><span class="w">                 </span><span class="nx">IMAGE</span><span class="w"> </span><span class="nx">ID</span><span class="w">            </span><span class="nx">CREATED</span><span class="w">             </span><span class="nx">SIZE</span><span class="w">
+</span><span class="n">skymemory/demo</span><span class="w">             </span><span class="nx">0.1</span><span class="w">                 </span><span class="nx">b6396664ec77</span><span class="w">        </span><span class="nx">9</span><span class="w"> </span><span class="nx">seconds</span><span class="w"> </span><span class="nx">ago</span><span class="w">       </span><span class="nx">358MB</span><span class="w">
+</span></code></pre></div></div>
+
+<p>此时，对应的<code class="language-plaintext highlighter-rouge">python</code>环境镜像就制作完成，启动对应容器及验证：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="nt">-d</span><span class="w"> </span><span class="nt">--name</span><span class="w"> </span><span class="nx">httpd</span><span class="w"> </span><span class="nt">-p</span><span class="w"> </span><span class="nx">9999:8000</span><span class="w"> </span><span class="nx">skymemory/demo:0.1</span><span class="w"> </span><span class="nx">/bin/sh</span><span class="w"> </span><span class="nt">-c</span><span class="w"> </span><span class="s2">"python3 test.py"</span><span class="w">
+</span><span class="n">ce31e6c3af48c4220e8619655eb09915bc4800b533d17d77526e0b14f646900f</span><span class="w">
+</span><span class="err">➜</span><span class="w">  </span><span class="nx">~</span><span class="w"> </span><span class="nx">docker</span><span class="w"> </span><span class="nx">top</span><span class="w"> </span><span class="nx">httpd</span><span class="w">
+</span><span class="n">PID</span><span class="w">                 </span><span class="nx">USER</span><span class="w">                </span><span class="nx">TIME</span><span class="w">                </span><span class="nx">COMMAND</span><span class="w">
+</span><span class="mi">19106</span><span class="w">               </span><span class="n">root</span><span class="w">                </span><span class="nx">0:00</span><span class="w">                </span><span class="nx">/bin/sh</span><span class="w"> </span><span class="nt">-c</span><span class="w"> </span><span class="nx">python3</span><span class="w"> </span><span class="nx">test.py</span><span class="w">
+</span><span class="mi">19150</span><span class="w">               </span><span class="n">root</span><span class="w">                </span><span class="nx">0:00</span><span class="w">                </span><span class="nx">python3</span><span class="w"> </span><span class="nx">test.py</span><span class="w">
+</span><span class="err">➜</span><span class="w">  </span><span class="n">~</span><span class="w"> </span><span class="nx">http</span><span class="w"> </span><span class="nx">http://localhost:9999/home</span><span class="w">
+</span><span class="n">HTTP/1.0</span><span class="w"> </span><span class="nx">200</span><span class="w"> </span><span class="nx">OK</span><span class="w">
+</span><span class="n">Content-type:</span><span class="w"> </span><span class="nx">application/json</span><span class="w">
+</span><span class="n">Date:</span><span class="w"> </span><span class="nx">Wed</span><span class="p">,</span><span class="w"> </span><span class="nx">03</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="nx">2019</span><span class="w"> </span><span class="nx">11:21:11</span><span class="w"> </span><span class="nx">GMT</span><span class="w">
+</span><span class="n">Server:</span><span class="w"> </span><span class="nx">BaseHTTP/0.6</span><span class="w"> </span><span class="nx">Python/3.6.7</span><span class="w">
+
+</span><span class="p">{</span><span class="w">
+    </span><span class="s2">"host"</span><span class="p">:</span><span class="w"> </span><span class="s2">"localhost"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"This is a dockerfile test."</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>现在再看看通过<code class="language-plaintext highlighter-rouge">Dockerfile</code>文件和<code class="language-plaintext highlighter-rouge">docker build</code>构建镜像过程。</p>
+
+<p>创建目录<code class="language-plaintext highlighter-rouge">df</code>，目录下创建<code class="language-plaintext highlighter-rouge">Dockerfile</code>和<code class="language-plaintext highlighter-rouge">test.py</code>文件，<code class="language-plaintext highlighter-rouge">test.py</code>文件内容与之前一致，<code class="language-plaintext highlighter-rouge">Dockerfile</code>文件内容：</p>
+
+<div class="language-dockerfile highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">FROM</span><span class="s"> ubuntu:latest</span>
+<span class="k">RUN </span>apt-get update
+<span class="k">RUN </span>apt-get <span class="nb">install</span> <span class="nt">-y</span> python3-dev
+<span class="k">ADD</span><span class="s"> test.py /</span>
+<span class="k">EXPOSE</span><span class="s"> 8000</span>
+<span class="k">CMD</span><span class="s"> ["python3", "test.py"]</span>
+</code></pre></div></div>
+
+<p>在<code class="language-plaintext highlighter-rouge">df</code>目录下执行：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w"> </span><span class="n">docker</span><span class="w"> </span><span class="nx">build</span><span class="w"> </span><span class="nt">-t</span><span class="w"> </span><span class="nx">skymemory/demo:0.2</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span><span class="n">Sending</span><span class="w"> </span><span class="nx">build</span><span class="w"> </span><span class="nx">context</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">Docker</span><span class="w"> </span><span class="nx">daemon</span><span class="w">  </span><span class="nx">3.584kB</span><span class="w">
+</span><span class="n">Step</span><span class="w"> </span><span class="nx">1/6</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nx">FROM</span><span class="w"> </span><span class="nx">ubuntu:latest</span><span class="w">
+ </span><span class="o">---</span><span class="err">&gt;</span><span class="w"> </span><span class="mi">94</span><span class="n">e814e2efa8</span><span class="w">
+</span><span class="nx">Step</span><span class="w"> </span><span class="nx">2/6</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nx">RUN</span><span class="w"> </span><span class="nx">apt-get</span><span class="w"> </span><span class="nx">update</span><span class="w">
+</span><span class="o">.....</span><span class="w">
+</span><span class="n">Successfully</span><span class="w"> </span><span class="nx">built</span><span class="w"> </span><span class="nx">4b49663acdc2</span><span class="w">
+</span><span class="n">Successfully</span><span class="w"> </span><span class="nx">tagged</span><span class="w"> </span><span class="nx">skymemory/demo:0.2</span><span class="w">
+</span></code></pre></div></div>
+
+<p>镜像成功构建后，执行如下命令：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">➜</span><span class="w">  </span><span class="n">docker</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="nt">-d</span><span class="w"> </span><span class="nt">--name</span><span class="w"> </span><span class="nx">httpd-1</span><span class="w"> </span><span class="nt">-p</span><span class="w"> </span><span class="nx">8888:8000</span><span class="w"> </span><span class="nx">skymemory/demo:0.2</span><span class="w">
+</span><span class="n">e220ded3a673bd74539a2b2ca911b9926d9e0d8d4a49444d3b90a388d5c8a0dc</span><span class="w">
+</span><span class="err">➜</span><span class="w">  </span><span class="nx">docker</span><span class="w"> </span><span class="nx">top</span><span class="w"> </span><span class="nx">httpd-1</span><span class="w">
+</span><span class="n">PID</span><span class="w">                 </span><span class="nx">USER</span><span class="w">                </span><span class="nx">TIME</span><span class="w">                </span><span class="nx">COMMAND</span><span class="w">
+</span><span class="mi">20418</span><span class="w">               </span><span class="n">root</span><span class="w">                </span><span class="nx">0:00</span><span class="w">                </span><span class="nx">python3</span><span class="w"> </span><span class="nx">test.py</span><span class="w">
+</span><span class="err">➜</span><span class="w">  </span><span class="n">http</span><span class="w"> </span><span class="nx">http://localhost:8888/home</span><span class="w">
+</span><span class="n">HTTP/1.0</span><span class="w"> </span><span class="nx">200</span><span class="w"> </span><span class="nx">OK</span><span class="w">
+</span><span class="n">Content-type:</span><span class="w"> </span><span class="nx">application/json</span><span class="w">
+</span><span class="n">Date:</span><span class="w"> </span><span class="nx">Wed</span><span class="p">,</span><span class="w"> </span><span class="nx">03</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="nx">2019</span><span class="w"> </span><span class="nx">11:37:19</span><span class="w"> </span><span class="nx">GMT</span><span class="w">
+</span><span class="n">Server:</span><span class="w"> </span><span class="nx">BaseHTTP/0.6</span><span class="w"> </span><span class="nx">Python/3.6.7</span><span class="w">
+
+</span><span class="p">{</span><span class="w">
+    </span><span class="s2">"host"</span><span class="p">:</span><span class="w"> </span><span class="s2">"localhost"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"This is a dockerfile test."</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Dockerfile</code>基于<code class="language-plaintext highlighter-rouge">DSL</code>语法的指令构建一个<code class="language-plaintext highlighter-rouge">Docker</code>镜像，常用的一些指令整理：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">CMD</code>：指定容器启动时运行的命令</li>
+  <li><code class="language-plaintext highlighter-rouge">RUN</code>：指定镜像被构建时要运行的命令</li>
+  <li><code class="language-plaintext highlighter-rouge">WORKDIR</code>：设置工作目录，类似<code class="language-plaintext highlighter-rouge">cd</code></li>
+  <li><code class="language-plaintext highlighter-rouge">ENV</code>：设置环境变量，格式为<code class="language-plaintext highlighter-rouge">ENV name value</code></li>
+  <li><code class="language-plaintext highlighter-rouge">COPY</code>：构建时用于复制本地目录或文件到容器</li>
+  <li><code class="language-plaintext highlighter-rouge">EXPOSE</code>：指定暴露端口</li>
+  <li><code class="language-plaintext highlighter-rouge">VOLUME</code>：指定挂载卷（后续会说明）</li>
+</ul>
+
+<hr />
+
+<h4 id="volume">Volume</h4>
+
+<p>在开发阶段代码频繁改动代码是很常见的事，如果通过上述构建镜像的方式运行项目代码，每更改一次就需要重新构建镜像，未免显得低效。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Docker</code>中引入了<code class="language-plaintext highlighter-rouge">Volume</code>，又称”卷”，可用于将容器中的目录或文件挂载到外部文件系统，这样外部文件系统的更改就能反应到容器内文件系统上。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Volume</code>在<code class="language-plaintext highlighter-rouge">Dockerfile</code>中通过<code class="language-plaintext highlighter-rouge">VOLUME</code>指令指定，如：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">VOLUME</span><span class="w"> </span><span class="p">[</span><span class="s2">"/data1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"/data2"</span><span class="p">]</span><span class="w">
+</span></code></pre></div></div>
+
+<p>也可在<code class="language-plaintext highlighter-rouge">docker run</code>命令中指定：</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">docker</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="nt">-d</span><span class="w"> </span><span class="nt">--name</span><span class="w"> </span><span class="nx">httpd-2</span><span class="w"> </span><span class="nt">-v</span><span class="w"> </span><span class="bp">$PWD</span><span class="nx">/test.py:/test.py</span><span class="w"> </span><span class="nt">-p</span><span class="w"> </span><span class="nx">8899:8000</span><span class="w"> </span><span class="nx">skymemory/demo:0.2</span><span class="w">
+</span></code></pre></div></div>
+
+<p>每当更新外部文件系统，根据<code class="language-plaintext highlighter-rouge">docker restart</code>命令重启对应的容器即可。</p>
+
+<p>当然，<code class="language-plaintext highlighter-rouge">Volume</code>的功能并不仅限于此，感兴趣的可以自行了解。</p>
+
+<hr />
+
+<h4 id="link">link</h4>
+
+<p>现实场景中，一个服务往往需要多个容器，如<code class="language-plaintext highlighter-rouge">mongodb</code>容器、<code class="language-plaintext highlighter-rouge">redis</code>容器、<code class="language-plaintext highlighter-rouge">mysql</code>容器等。</p>
+
+<p>由于容器每次重启对应的IP地址都会发生变化，这样就导致了某个容器重启后，依赖该容器的服务就需要更换调用IP地址，极大的不方便。</p>
+
+<p><code class="language-plaintext highlighter-rouge">Docker</code>提供了<code class="language-plaintext highlighter-rouge">link</code>功能来解决诸如此类问题，运行<code class="language-plaintext highlighter-rouge">docker run</code>命令时可通过—link选项指明连接容器及别名，如:</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">docker</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="nt">--link</span><span class="w"> </span><span class="nx">redis:cache</span><span class="w"> </span><span class="nt">--rm</span><span class="w"> </span><span class="nt">-it</span><span class="w"> </span><span class="nx">ubuntu</span><span class="w"> </span><span class="nx">/bin/bash</span><span class="w">
+</span></code></pre></div></div>
+
+<p>上述命令指定<code class="language-plaintext highlighter-rouge">link</code>容器名为<code class="language-plaintext highlighter-rouge">redis</code>，别名为<code class="language-plaintext highlighter-rouge">cache</code>，<code class="language-plaintext highlighter-rouge">Docker</code>内部会在当前容器<code class="language-plaintext highlighter-rouge">/etc/hosts</code>文件中添加<code class="language-plaintext highlighter-rouge">cache</code>到对应IP的转换，另外还会将<code class="language-plaintext highlighter-rouge">redis</code>容器中的环境变量导入本容器，根据这两点可以获知<code class="language-plaintext highlighter-rouge">link</code>容器信息。</p>
+
+<hr />
+
+<h4 id="docker-compose">docker-compose</h4>
+
+<p>还是之前的问题，一个服务往往涉及多个容器，如缓存、持久化存储、<code class="language-plaintext highlighter-rouge">oss</code>存储、搜索等，人工部署各个容器无疑加大人力成本。</p>
+
+<p>我们需要一个工具来管理多个容器，这个工具需要提供服务编排的功能，这就是<code class="language-plaintext highlighter-rouge">docker-compose</code>。</p>
+
+<p>通常情况下安装好<code class="language-plaintext highlighter-rouge">Docker</code>后，默认会安装<code class="language-plaintext highlighter-rouge">docker-compose</code>工具，<code class="language-plaintext highlighter-rouge">docker-compose</code>配置文件格式为<code class="language-plaintext highlighter-rouge">yml</code>:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">cache</span><span class="pi">:</span>
+  <span class="na">image</span><span class="pi">:</span> <span class="s">redis</span>
+
+<span class="na">httpd</span><span class="pi">:</span>
+  <span class="na">image</span><span class="pi">:</span> <span class="s">test:0.1</span>
+  <span class="na">links</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">cache</span>
+  <span class="na">ports</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s2">"</span><span class="s">8888:8000"</span>
+  <span class="na">volumes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">/Users/memorysky/demo:/tmp</span>
+</code></pre></div></div>
+
+<p>定义好服务<code class="language-plaintext highlighter-rouge">yml</code>文件后，即可通过<code class="language-plaintext highlighter-rouge">docker-compose up -d</code>方式启动服务。</p>
+
+<p>基本上平时自己会用到的内容大体就这些，其他的内容用到的时候在说吧。</p>
+
+:ET
